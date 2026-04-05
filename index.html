@@ -385,7 +385,7 @@ const STEPS = ['🔍 Researching your topic…','💡 Finding unique angles…',
 function setLoading(on) {
   document.getElementById('loadCard').style.display = on ? 'block' : 'none';
   document.getElementById('outCard').style.display  = on ? 'none' : (versions.length ? 'block' : 'none');
-  document.getElementById('errCard').style.display  = 'none';
+  if (on) document.getElementById('errCard').style.display = 'none'; // only hide error when starting load, not when stopping
   const btn = document.getElementById('genBtn');
   btn.disabled = on;
   document.getElementById('genIcon').innerHTML = on ? '<div class="spinner"></div>' : '✨';
@@ -615,14 +615,52 @@ function showToast(msg, type) {
 
 // ── Handle OAuth return ────────────────────────────────────────────────────
 function checkOAuthReturn() {
+  // Method 1: Token comes back in URL hash (normal flow)
   const hash = window.location.hash;
-  if (!hash) return;
-  const params = new URLSearchParams(hash.slice(1));
-  const token = params.get('li_token');
-  const error = params.get('li_error');
-  history.replaceState(null, '', window.location.pathname + window.location.search);
-  if (token) connectLiWithToken(token);
-  else if (error) setLiStatus('❌ Login failed: ' + decodeURIComponent(error), false);
+  if (hash && hash.includes('li_token=')) {
+    const params = new URLSearchParams(hash.slice(1));
+    const token = params.get('li_token');
+    history.replaceState(null, '', window.location.pathname);
+    if (token) { connectLiWithToken(token); return; }
+  }
+  if (hash && hash.includes('li_error=')) {
+    const params = new URLSearchParams(hash.slice(1));
+    const error = params.get('li_error');
+    history.replaceState(null, '', window.location.pathname);
+    setLiStatus('❌ Login failed: ' + decodeURIComponent(error || 'Unknown error'), false);
+    return;
+  }
+
+  // Method 2: Fallback — if ?code= is in the URL, the auth function may have
+  // failed to exchange it. Try exchanging it via a direct call to the auth function.
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+  if (code) {
+    history.replaceState(null, '', window.location.pathname);
+    setLiStatus('🔄 Completing LinkedIn login…', true);
+    // Call the auth function directly and follow its redirect
+    fetch(`/.netlify/functions/linkedin-auth?code=${encodeURIComponent(code)}`, { redirect: 'manual' })
+      .then(res => {
+        const location = res.headers.get('Location') || '';
+        if (location.includes('li_token=')) {
+          const hashPart = location.split('#')[1] || '';
+          const p = new URLSearchParams(hashPart);
+          const token = p.get('li_token');
+          if (token) { connectLiWithToken(token); return; }
+        }
+        // If we get here, parse error from location
+        if (location.includes('li_error=')) {
+          const hashPart = location.split('#')[1] || '';
+          const p = new URLSearchParams(hashPart);
+          setLiStatus('❌ ' + decodeURIComponent(p.get('li_error') || 'Auth failed'), false);
+        } else {
+          setLiStatus('❌ Login failed. Check Netlify function logs for details.', false);
+        }
+      })
+      .catch(e => {
+        setLiStatus('❌ Login error: ' + e.message, false);
+      });
+  }
 }
 
 checkOAuthReturn();
