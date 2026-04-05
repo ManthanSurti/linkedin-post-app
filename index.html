@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkedIn Post Generator – Manthan</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --li-blue: #0077b5;
+      --li-dark: #004f8c;
+      --bg: #f0f4ff;
+      --card: #ffffff;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e9f2;
+      --success: #16a34a;
+      --warn: #d97706;
+      --danger: #dc2626;
+      --radius: 18px;
+      --shadow: 0 4px 28px rgba(0,0,0,0.09);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(145deg, #eef2ff 0%, #fdf4ff 50%, #f0fdf4 100%);
+      min-height: 100vh;
+      padding: 32px 16px 80px;
+      color: var(--text);
+    }
+
+    .wrap { max-width: 740px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 36px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: white; border-radius: 100px; padding: 8px 22px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.07); margin-bottom: 18px;
+      font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      color: var(--li-blue); text-transform: uppercase;
+    }
+    h1 { font-size: 30px; font-weight: 800; line-height: 1.2; margin-bottom: 10px; }
+    h1 em { font-style: normal; color: var(--li-blue); }
+    .tagline { color: var(--muted); font-size: 15px; }
+    .ai-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white; border-radius: 100px; padding: 5px 14px;
+      font-size: 12px; font-weight: 600; margin-top: 12px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card); border-radius: var(--radius);
+      padding: 28px; box-shadow: var(--shadow); margin-bottom: 20px;
+    }
+
+    /* ── API Key section ── */
+    .api-section {
+      background: linear-gradient(135deg, #ede9fe, #e0f2fe);
+      border: 1.5px solid #c4b5fd; border-radius: var(--radius);
+      padding: 22px 28px; margin-bottom: 20px;
+    }
+    .api-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .api-header h3 { font-size: 15px; font-weight: 700; color: #4c1d95; }
+    .api-desc { font-size: 13px; color: #6d28d9; margin-bottom: 14px; line-height: 1.5; }
+    /* Provider picker */
+    .providers { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .prov {
+      flex: 1; min-width: 130px; padding: 12px 14px; border-radius: 12px; border: 2px solid #c4b5fd;
+      background: white; cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .prov:hover { border-color: #7c3aed; }
+    .prov.on { border-color: #7c3aed; background: #ede9fe; }
+    .prov-name { font-weight: 700; font-size: 13px; color: #1a1a2e; }
+    .prov-badge {
+      display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 100px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge-free { background: #dcfce7; color: #15803d; }
+    .badge-paid { background: #fef3c7; color: #92400e; }
+    .api-row { display: flex; gap: 10px; align-items: center; }
+    .api-input-wrap { position: relative; flex: 1; }
+    .api-input-wrap input {
+      width: 100%; padding: 11px 44px 11px 14px;
+      border-radius: 10px; border: 1.5px solid #c4b5fd;
+      font-size: 14px; font-family: monospace; color: var(--text);
+      outline: none; transition: border-color 0.2s; background: white;
+    }
+    .api-input-wrap input:focus { border-color: #7c3aed; }
+    .eye-btn {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: var(--muted); font-size: 16px;
+    }
+    .btn-save-key {
+      padding: 11px 20px; border-radius: 10px; border: none;
+      background: #7c3aed; color: white; font-weight: 700; font-size: 13px;
+      cursor: pointer; white-space: nowrap; transition: background 0.2s;
+    }
+    .btn-save-key:hover { background: #6d28d9; }
+    .key-status { font-size: 12px; margin-top: 8px; }
+    .key-ok { color: var(--success); }
+    .key-err { color: var(--danger); }
+    .api-link { font-size: 12px; color: #7c3aed; margin-top: 6px; display: block; }
+
+    /* ── Form ── */
+    label.field-label {
+      display: block; font-weight: 700; font-size: 13px;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    input[type="text"] {
+      width: 100%; padding: 14px 16px; border-radius: 12px;
+      border: 2px solid var(--border); font-size: 15px; color: var(--text);
+      outline: none; transition: border-color 0.2s; font-family: inherit;
+    }
+    input[type="text"]:focus { border-color: var(--li-blue); }
+
+    /* ── Categories ── */
+    .cats { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    .cat {
+      padding: 8px 18px; border-radius: 100px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 2px solid var(--border); background: white; color: var(--muted);
+      transition: all 0.2s; user-select: none;
+    }
+    .cat.on { border-color: var(--li-blue); background: var(--li-blue); color: white; }
+
+    /* ── Tone selector ── */
+    .tones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .tone {
+      padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid var(--border); background: white; color: var(--muted);
+      transition: all 0.2s;
+    }
+    .tone.on { border-color: #7c3aed; background: #ede9fe; color: #5b21b6; }
+
+    /* ── Generate btn ── */
+    .btn-gen {
+      width: 100%; margin-top: 24px; padding: 17px; border-radius: 14px; border: none;
+      cursor: pointer; font-weight: 800; font-size: 16px; letter-spacing: 0.3px;
+      background: linear-gradient(135deg, var(--li-blue), var(--li-dark));
+      color: white; box-shadow: 0 5px 20px rgba(0,119,181,0.38);
+      transition: all 0.25s; display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-gen:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,119,181,0.45); }
+    .btn-gen:disabled { background: #d1d5db; box-shadow: none; cursor: not-allowed; }
+
+    /* ── Loading ── */
+    .spinner {
+      width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-steps { text-align: center; padding: 20px 0; }
+    .step { font-size: 14px; color: var(--muted); margin: 4px 0; opacity: 0; animation: fadeIn 0.5s forwards; }
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    /* ── Output ── */
+    .out-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+    .out-title { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .quality-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #dcfce7; color: #15803d; border-radius: 100px;
+      padding: 3px 10px; font-size: 11px; font-weight: 700;
+    }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-tool {
+      padding: 7px 14px; border-radius: 8px; border: 1.5px solid var(--border);
+      background: white; color: var(--muted); font-weight: 600; font-size: 12px;
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .btn-tool:hover { border-color: var(--li-blue); color: var(--li-blue); }
+    .btn-tool.active { background: #fff3e0; color: #c2410c; border-color: #fed7aa; }
+
+    /* ── LinkedIn preview ── */
+    .li-card {
+      background: #f8fafc; border-radius: 14px;
+      border: 1px solid #e2e8f0; padding: 20px;
+    }
+    .li-top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .avatar {
+      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--li-blue), var(--li-dark));
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 17px;
+    }
+    .li-name { font-weight: 700; font-size: 14px; }
+    .li-meta { font-size: 12px; color: var(--muted); }
+    .post-body { font-size: 14px; line-height: 1.8; white-space: pre-wrap; color: #1e293b; }
+    .post-edit {
+      width: 100%; min-height: 300px; padding: 14px; border-radius: 10px;
+      border: 2px solid var(--li-blue); font-size: 14px; font-family: inherit;
+      color: var(--text); resize: vertical; line-height: 1.8; background: white;
+    }
+
+    /* ── Stats bar ── */
+    .stats-bar { display: flex; gap: 16px; margin-top: 14px; flex-wrap: wrap; }
+    .stat { font-size: 12px; color: var(--muted); }
+    .stat strong { color: var(--text); }
+    .char-ok   { color: var(--success); font-weight: 700; }
+    .char-warn { color: var(--warn); font-weight: 700; }
+    .char-over { color: var(--danger); font-weight: 700; }
+
+    /* ── LinkedIn post button ── */
+    .btn-li {
+      width: 100%; margin-top: 18px; padding: 16px; border-radius: 14px; border: none;
+      background: #0077b5; color: white; font-weight: 800; font-size: 15px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 4px 18px rgba(0,119,181,0.35); transition: all 0.2s;
+    }
+    .btn-li:hover { background: #005885; transform: translateY(-1px); }
+    .li-icon {
+      width: 24px; height: 24px; background: white; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-copy-li {
+      background: white; color: var(--li-blue); border: 2px solid var(--li-blue);
+      box-shadow: none;
+    }
+    .btn-copy-li:hover { background: #e8f4fb; }
+    .btn-row { display: flex; gap: 12px; margin-top: 18px; }
+    .btn-row .btn-li { margin-top: 0; flex: 1; }
+
+    /* ── Versions ── */
+    .versions { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .ver-btn {
+      padding: 5px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid var(--border); background: white; color: var(--muted);
+      transition: all 0.2s;
+    }
+    .ver-btn.on { border-color: var(--li-blue); background: #e8f4fb; color: var(--li-blue); }
+
+    /* ── History ── */
+    .history-grid { display: flex; flex-direction: column; gap: 10px; }
+    .h-item {
+      padding: 14px 18px; background: #f8faff; border-radius: 12px;
+      border: 1.5px solid var(--border); cursor: pointer; transition: all 0.2s;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    }
+    .h-item:hover { border-color: var(--li-blue); background: #eef5fb; }
+    .h-topic { font-weight: 700; font-size: 13px; }
+    .h-cat { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .h-arrow { color: var(--li-blue); font-size: 18px; flex-shrink: 0; }
+
+    /* ── Error ── */
+    .error-box {
+      background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 12px;
+      padding: 16px 20px; font-size: 14px; color: #991b1b; line-height: 1.6;
+    }
+    .error-box strong { display: block; margin-bottom: 6px; }
+
+    /* ── LinkedIn Connect section ── */
+    .li-section {
+      background: linear-gradient(135deg, #e8f4fb, #dbeafe);
+      border: 1.5px solid #90cdf4; border-radius: var(--radius);
+      padding: 22px 28px; margin-bottom: 20px;
+    }
+    .li-section.connected { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-color: #86efac; }
+    .li-sec-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .li-sec-header h3 { font-size: 15px; font-weight: 700; color: #1e40af; }
+    .li-sec-desc { font-size: 13px; color: #1d4ed8; margin-bottom: 16px; line-height: 1.5; }
+    .btn-li-login {
+      width: 100%; padding: 15px 20px; border-radius: 12px; border: none;
+      background: #0077b5; color: white; font-weight: 800; font-size: 15px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;
+      box-shadow: 0 4px 16px rgba(0,119,181,0.35); transition: all 0.2s;
+    }
+    .btn-li-login:hover { background: #005885; transform: translateY(-1px); }
+    .btn-li-login:disabled { background: #93c5fd; cursor: not-allowed; transform: none; }
+    .li-connected-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .li-user-info { display: flex; align-items: center; gap: 12px; }
+    .li-user-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, #0077b5, #004f8c);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 16px;
+    }
+    .li-user-name { font-weight: 700; font-size: 14px; }
+    .li-user-sub { font-size: 12px; color: var(--success); }
+    .btn-logout { padding: 7px 14px; border-radius: 8px; border: 1.5px solid #fecaca; background: white; color: #991b1b; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-logout:hover { background: #fef2f2; }
+    .li-status { font-size: 12px; margin-top: 10px; }
+    .li-status-ok  { color: var(--success); }
+    .li-status-err { color: var(--danger); }
+    .post-toast {
+      display: none; margin-top: 12px; padding: 12px 16px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; text-align: center;
+    }
+    .toast-ok  { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .toast-err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .toast-loading { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+
+    /* ── Host Banner ── */
+    .host-banner {
+      background: linear-gradient(135deg, #dbeafe, #ede9fe);
+      border: 1.5px solid #bfdbfe; border-radius: var(--radius);
+      padding: 20px 24px; margin-bottom: 20px;
+    }
+    .host-banner h3 { font-size: 14px; font-weight: 700; color: #1e40af; margin-bottom: 12px; }
+    .host-steps { display: flex; flex-direction: column; gap: 8px; }
+    .hs { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #334155; }
+    .sn {
+      width: 24px; height: 24px; background: var(--li-blue); color: white;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; flex-shrink: 0;
+    }
+
+    footer { text-align: center; font-size: 12px; color: #c4c9d4; margin-top: 16px; }
+
+    @media (max-width: 520px) {
+      h1 { font-size: 24px; }
+      .card { padding: 20px; }
+      .btn-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      LinkedIn Post Generator
+    </div>
+    <h1>AI-Researched Posts That<br><em>Actually Get Engagement</em></h1>
+    <p class="tagline">Not templates. Real AI research. Unique insights every time.</p>
+    <div class="ai-pill">⚡ Powered by Claude AI</div>
+  </div>
+
+  <!-- Host banner (only when opened locally) -->
+  <div class="host-banner" id="hostBanner">
+    <h3>🌐 Host this app online for free — no coding needed:</h3>
+    <div class="host-steps">
+      <div class="hs"><div class="sn">1</div>Go to <strong>netlify.com/drop</strong></div>
+      <div class="hs"><div class="sn">2</div>Create a free Netlify account</div>
+      <div class="hs"><div class="sn">3</div>Drag and drop this HTML file onto the page</div>
+      <div class="hs"><div class="sn">4</div>Your app is live — share the link with anyone 🎉</div>
+    </div>
+  </div>
+
+  <!-- API Key Section -->
+  <div class="api-section" id="apiSection">
+    <div class="api-header">
+      <span style="font-size:20px">🔑</span>
+      <h3>Connect AI — pick your provider (one-time setup)</h3>
+    </div>
+    <p class="api-desc">
+      Choose a provider below. Gemini and Groq are <strong>completely free</strong>. Your key stays in this tab only — never stored or sent anywhere else.
+    </p>
+
+    <!-- Provider selector -->
+    <div class="providers">
+      <div class="prov on" id="prov-gemini" onclick="selectProvider('gemini')">
+        <div style="font-size:22px;margin-bottom:4px;">🌟</div>
+        <div class="prov-name">Google Gemini</div>
+        <div><span class="prov-badge badge-free">FREE · Recommended</span></div>
+        <div style="font-size:11px;color:#6b7280;margin-top:4px;">1,500 posts/day free</div>
+      </div>
+      <div class="prov" id="prov-groq" onclick="selectProvider('groq')">
+        <div style="font-size:22px;margin-bottom:4px;">⚡</div>
+        <div class="prov-name">Groq (Llama 3.3)</div>
+        <div><span class="prov-badge badge-free">FREE · Ultra fast</span></div>
+        <div style="font-size:11px;color:#6b7280;margin-top:4px;">14,400 requests/day</div>
+      </div>
+      <div class="prov" id="prov-claude" onclick="selectProvider('claude')">
+        <div style="font-size:22px;margin-bottom:4px;">🧠</div>
+        <div class="prov-name">Claude (Haiku)</div>
+        <div><span class="prov-badge badge-paid">~$0.002 / post</span></div>
+        <div style="font-size:11px;color:#6b7280;margin-top:4px;">Highest quality</div>
+      </div>
+    </div>
+
+    <div class="api-row">
+      <div class="api-input-wrap">
+        <input type="password" id="apiKeyInput" placeholder="AIzaSy... (Gemini key)" autocomplete="off" />
+        <button class="eye-btn" onclick="toggleKeyVis()">👁</button>
+      </div>
+      <button class="btn-save-key" onclick="saveKey()">Connect →</button>
+    </div>
+    <div id="keyStatus" class="key-status"></div>
+    <a id="apiLink" href="https://aistudio.google.com/app/apikey" target="_blank" class="api-link">
+      🔗 Get your free Gemini key at aistudio.google.com →
+    </a>
+  </div>
+
+  <!-- LinkedIn Connect Section -->
+  <div class="li-section" id="liSection">
+    <div class="li-sec-header">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#0077b5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      <h3>Connect LinkedIn</h3>
+    </div>
+
+    <!-- Logged-out state -->
+    <div id="liLoginView">
+      <p class="li-sec-desc">Log in once with your LinkedIn account — posts go live with a single click, no copy-pasting ever again.</p>
+      <button class="btn-li-login" id="liLoginBtn" onclick="loginWithLinkedIn()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        Login with LinkedIn
+      </button>
+      <div id="liStatus" class="li-status"></div>
+    </div>
+
+    <!-- Logged-in state (shown after OAuth) -->
+    <div id="liConnectedView" style="display:none;">
+      <div class="li-connected-row">
+        <div class="li-user-info">
+          <div class="li-user-avatar" id="liAvatar">M</div>
+          <div>
+            <div class="li-user-name" id="liUserName">LinkedIn User</div>
+            <div class="li-user-sub">✅ Connected · ready to post</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logoutLinkedIn()">Disconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Form -->
+  <div class="card">
+    <div style="margin-bottom:22px;">
+      <label class="field-label">📌 Topic to post about</label>
+      <input type="text" id="topicInput"
+        placeholder="e.g. AI agents replacing junior developers, bootstrapping vs VC funding, prompt engineering tips..."
+        onkeydown="if(event.key==='Enter') generate()" />
+    </div>
+
+    <div style="margin-bottom:22px;">
+      <label class="field-label">🏷️ Category</label>
+      <div class="cats">
+        <div class="cat on" onclick="setCat(this,'AI & Technology')">🤖 AI & Technology</div>
+        <div class="cat" onclick="setCat(this,'Business & Entrepreneurship')">💼 Business</div>
+        <div class="cat" onclick="setCat(this,'Career & Growth')">🚀 Career & Growth</div>
+        <div class="cat" onclick="setCat(this,'Custom')">✨ Custom</div>
+      </div>
+    </div>
+
+    <div>
+      <label class="field-label">🎭 Tone</label>
+      <div class="tones">
+        <div class="tone on" onclick="setTone(this,'Conversational & engaging — like a smart friend sharing insights')">Conversational</div>
+        <div class="tone" onclick="setTone(this,'Thought leadership — data-driven, authoritative, credible')">Thought Leader</div>
+        <div class="tone" onclick="setTone(this,'Storytelling — personal experience, lessons learned, emotional')">Storytelling</div>
+        <div class="tone" onclick="setTone(this,'Punchy & bold — short sentences, contrarian takes, provocative')">Bold & Punchy</div>
+      </div>
+    </div>
+
+    <button class="btn-gen" id="genBtn" onclick="generate()">
+      <span id="btnIcon">✨</span>
+      <span id="btnText">Generate AI Post</span>
+    </button>
+  </div>
+
+  <!-- Loading card -->
+  <div class="card" id="loadCard" style="display:none; text-align:center; padding:36px;">
+    <div style="display:flex;justify-content:center;margin-bottom:20px;">
+      <div class="spinner" style="width:32px;height:32px;border-width:4px;border-color:rgba(0,119,181,0.2);border-top-color:#0077b5;"></div>
+    </div>
+    <div id="loadSteps"></div>
+  </div>
+
+  <!-- Error card -->
+  <div class="card" id="errCard" style="display:none;">
+    <div class="error-box" id="errBox"></div>
+  </div>
+
+  <!-- Output card -->
+  <div class="card" id="outCard" style="display:none;">
+    <div class="out-header">
+      <div class="out-title">
+        📝 Your Post
+        <span class="quality-badge">✅ AI-researched</span>
+      </div>
+      <div class="toolbar">
+        <button class="btn-tool" id="editBtn" onclick="toggleEdit()">✏️ Edit</button>
+        <button class="btn-tool" onclick="regenerate()">🔄 New version</button>
+      </div>
+    </div>
+
+    <!-- Version tabs (when multiple generated) -->
+    <div class="versions" id="versionTabs"></div>
+
+    <!-- Preview / Edit -->
+    <div class="li-card">
+      <div class="li-top">
+        <div class="avatar">M</div>
+        <div>
+          <div class="li-name">Manthan Surti</div>
+          <div class="li-meta">Just now · 🌐</div>
+        </div>
+      </div>
+      <div id="postPreview" class="post-body"></div>
+      <textarea id="postEdit" class="post-edit" style="display:none;" oninput="syncEdit()"></textarea>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat">Characters: <span id="charOut">0</span> / <span class="char-ok">3,000</span></div>
+      <div class="stat">Est. read time: <span id="readTime">–</span></div>
+      <div class="stat">Words: <span id="wordCount">–</span></div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="btn-row">
+      <button class="btn-li btn-copy-li" onclick="copyPost()">
+        <span id="copyTxt">📋 Copy Post</span>
+      </button>
+      <button class="btn-li" id="liPostBtn" onclick="handleLinkedInPost()">
+        <div class="li-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#0077b5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </div>
+        <span id="liPostTxt">Post to LinkedIn</span>
+      </button>
+    </div>
+    <div class="post-toast" id="postToast"></div>
+  </div>
+
+  <!-- History -->
+  <div class="card" id="histCard" style="display:none;">
+    <h3 style="font-size:15px;font-weight:800;margin-bottom:16px;">🕐 Previous Posts</h3>
+    <div class="history-grid" id="histList"></div>
+  </div>
+
+  <footer>Built for Manthan Surti · Powered by Gemini / Groq / Claude · 2026</footer>
+</div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────────────
+let apiKey = '';
+let provider = 'gemini'; // 'gemini' | 'groq' | 'claude'
+let currentTopic = '';
+let currentCat = 'AI & Technology';
+let currentTone = 'Conversational & engaging — like a smart friend sharing insights';
+let versions = [];
+let activeVer = 0;
+let editMode = false;
+let history = [];
+
+// ─── Provider selector ─────────────────────────────────────────────────────
+const PROVIDER_META = {
+  gemini: {
+    placeholder: 'AIzaSy... (Gemini key)',
+    link: 'https://aistudio.google.com/app/apikey',
+    linkText: '🔗 Get your free Gemini key at aistudio.google.com →',
+    validate: v => v.startsWith('AIza'),
+    errMsg: 'Gemini keys start with "AIza". Get yours at aistudio.google.com'
+  },
+  groq: {
+    placeholder: 'gsk_... (Groq key)',
+    link: 'https://console.groq.com/keys',
+    linkText: '🔗 Get your free Groq key at console.groq.com →',
+    validate: v => v.startsWith('gsk_'),
+    errMsg: 'Groq keys start with "gsk_". Get yours at console.groq.com'
+  },
+  claude: {
+    placeholder: 'sk-ant-api03-... (Anthropic key)',
+    link: 'https://console.anthropic.com/keys',
+    linkText: '🔗 Get your Anthropic key at console.anthropic.com →',
+    validate: v => v.startsWith('sk-ant-'),
+    errMsg: 'Anthropic keys start with "sk-ant-". Note: Claude is a paid API.'
+  }
+};
+
+function selectProvider(p) {
+  provider = p;
+  document.querySelectorAll('.prov').forEach(el => el.classList.remove('on'));
+  document.getElementById('prov-' + p).classList.add('on');
+  const meta = PROVIDER_META[p];
+  document.getElementById('apiKeyInput').placeholder = meta.placeholder;
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('apiLink').href = meta.link;
+  document.getElementById('apiLink').textContent = meta.linkText;
+  setKeyStatus('', true);
+  apiKey = '';
+  // Reset section style
+  document.getElementById('apiSection').style.border = '1.5px solid #c4b5fd';
+  document.getElementById('apiSection').style.background = 'linear-gradient(135deg,#ede9fe,#e0f2fe)';
+}
+
+// ─── API Key ───────────────────────────────────────────────────────────────
+function toggleKeyVis() {
+  const inp = document.getElementById('apiKeyInput');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function saveKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  const meta = PROVIDER_META[provider];
+  if (!meta.validate(val)) {
+    setKeyStatus('⚠️ ' + meta.errMsg, false);
+    return;
+  }
+  apiKey = val;
+  const names = { gemini: 'Gemini', groq: 'Groq', claude: 'Claude' };
+  setKeyStatus(`✅ ${names[provider]} connected! Ready to generate posts.`, true);
+  document.getElementById('apiSection').style.border = '1.5px solid #86efac';
+  document.getElementById('apiSection').style.background = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
+}
+
+function setKeyStatus(msg, ok) {
+  const el = document.getElementById('keyStatus');
+  el.textContent = msg;
+  el.className = 'key-status ' + (ok ? 'key-ok' : 'key-err');
+}
+
+// ─── Selectors ─────────────────────────────────────────────────────────────
+function setCat(el, val) {
+  document.querySelectorAll('.cat').forEach(c => c.classList.remove('on'));
+  el.classList.add('on'); currentCat = val;
+}
+function setTone(el, val) {
+  document.querySelectorAll('.tone').forEach(t => t.classList.remove('on'));
+  el.classList.add('on'); currentTone = val;
+}
+
+// ─── Prompt ────────────────────────────────────────────────────────────────
+function buildPrompt(topic, cat, tone) {
+  return `You are an expert LinkedIn content strategist writing for Manthan Surti, a professional in tech and business.
+
+Write a high-quality, unique LinkedIn post about: "${topic}"
+Category: ${cat}
+Tone: ${tone}
+
+REQUIREMENTS — follow every single one:
+1. **Hook (line 1):** Must be irresistible. Use one of: a bold contrarian statement, a surprising stat, a short provocative question, or a vivid scenario. Do NOT start with "I" or "We". Make people stop scrolling.
+2. **Body:** Include at least 1-2 specific, real, credible data points or recent developments (use your knowledge up to your training cutoff). Weave them naturally — don't just list stats.
+3. **Insight:** Share a non-obvious perspective or contrarian take that makes the reader think differently.
+4. **Structure:** Use short paragraphs (1-3 lines max), blank lines between sections, and arrows (→) or checkmarks for lists. Never bullet points.
+5. **Storytelling:** Include a brief concrete example, real-world scenario, or personal-feeling observation that grounds the insight.
+6. **CTA:** End with a single engaging question that invites comments. Keep it open-ended and genuinely curious.
+7. **Hashtags:** Add exactly 5 highly relevant hashtags on the last line.
+8. **Length:** Between 900–1,400 characters (optimal for LinkedIn algorithm).
+9. **Tone check:** No corporate jargon. No "In today's fast-paced world". No "I'm excited to share". Sound human, smart, and direct.
+
+Output ONLY the post text. No preamble, no explanation, no quotes around it. Just the raw post ready to copy-paste.`;
+}
+
+// ─── Generate ──────────────────────────────────────────────────────────────
+async function generate() {
+  const topic = document.getElementById('topicInput').value.trim();
+  if (!topic) { document.getElementById('topicInput').focus(); return; }
+
+  if (!apiKey) {
+    setKeyStatus('⬆️ Please enter and save your API key above first.', false);
+    document.getElementById('apiKeyInput').focus();
+    return;
+  }
+
+  currentTopic = topic;
+  setLoading(true);
+
+  try {
+    const post = await callAI(buildPrompt(topic, currentCat, currentTone));
+    versions.unshift(post);
+    if (versions.length > 3) versions.pop();
+    activeVer = 0;
+    showPost();
+    addHistory(topic, currentCat, post);
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function regenerate() {
+  if (!currentTopic || !apiKey) return;
+
+  setLoading(true);
+  try {
+    const post = await callAI(buildPrompt(currentTopic, currentCat, currentTone));
+    versions.unshift(post);
+    if (versions.length > 3) versions.pop();
+    activeVer = 0;
+    showPost();
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function callAI(prompt) {
+  if (provider === 'gemini') return callGemini(prompt);
+  if (provider === 'groq')   return callGroq(prompt);
+  return callClaude(prompt);
+}
+
+async function callGemini(prompt) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 400) throw new Error('Invalid Gemini API key. Double-check and re-enter it above.');
+    if (res.status === 429) throw new Error('Free rate limit hit. Wait a minute and try again.');
+    throw new Error(err.error?.message || `Gemini error ${res.status}. Please try again.`);
+  }
+  const data = await res.json();
+  return data.candidates[0].content.parts[0].text.trim();
+}
+
+async function callGroq(prompt) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 401) throw new Error('Invalid Groq API key. Double-check and re-enter it above.');
+    if (res.status === 429) throw new Error('Free rate limit hit. Wait a moment and try again.');
+    throw new Error(err.error?.message || `Groq error ${res.status}. Please try again.`);
+  }
+  const data = await res.json();
+  return data.choices[0].message.content.trim();
+}
+
+async function callClaude(prompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 401) throw new Error('Invalid API key. Please check and re-enter your key above.');
+    if (res.status === 429) throw new Error('Rate limit hit. Wait a moment and try again.');
+    throw new Error(err.error?.message || `API error ${res.status}. Please try again.`);
+  }
+  const data = await res.json();
+  return data.content[0].text.trim();
+}
+
+// ─── Loading ───────────────────────────────────────────────────────────────
+const STEPS = [
+  '🔍 Researching your topic…',
+  '💡 Finding unique angles and insights…',
+  '✍️ Crafting your hook…',
+  '📊 Weaving in data points…',
+  '✨ Polishing for maximum engagement…'
+];
+
+function setLoading(on) {
+  document.getElementById('loadCard').style.display = on ? 'block' : 'none';
+  document.getElementById('outCard').style.display = on ? 'none' : (versions.length ? 'block' : 'none');
+  document.getElementById('errCard').style.display = 'none';
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = on;
+  document.getElementById('btnIcon').innerHTML = on ? '<div class="spinner"></div>' : '✨';
+  document.getElementById('btnText').textContent = on ? 'Generating…' : 'Generate AI Post';
+
+  if (on) {
+    const stepsEl = document.getElementById('loadSteps');
+    stepsEl.innerHTML = '';
+    STEPS.forEach((s, i) => {
+      const div = document.createElement('div');
+      div.className = 'step';
+      div.textContent = s;
+      div.style.animationDelay = `${i * 0.7}s`;
+      stepsEl.appendChild(div);
+    });
+  }
+}
+
+// ─── Show post ─────────────────────────────────────────────────────────────
+function showPost() {
+  if (editMode) toggleEdit();
+  const post = versions[activeVer];
+  document.getElementById('postPreview').textContent = post;
+  document.getElementById('postEdit').value = post;
+  document.getElementById('outCard').style.display = 'block';
+  updateStats(post);
+  renderVersionTabs();
+  document.getElementById('outCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderVersionTabs() {
+  const el = document.getElementById('versionTabs');
+  if (versions.length < 2) { el.innerHTML = ''; return; }
+  el.innerHTML = versions.map((_, i) =>
+    `<button class="ver-btn ${i === activeVer ? 'on' : ''}" onclick="switchVer(${i})">Version ${i + 1}</button>`
+  ).join('');
+}
+
+function switchVer(i) {
+  activeVer = i;
+  if (editMode) toggleEdit();
+  document.getElementById('postPreview').textContent = versions[i];
+  document.getElementById('postEdit').value = versions[i];
+  updateStats(versions[i]);
+  renderVersionTabs();
+}
+
+function toggleEdit() {
+  editMode = !editMode;
+  const preview = document.getElementById('postPreview');
+  const editor = document.getElementById('postEdit');
+  const btn = document.getElementById('editBtn');
+  if (editMode) {
+    preview.style.display = 'none';
+    editor.style.display = 'block';
+    editor.focus();
+    btn.textContent = '👁️ Preview';
+    btn.classList.add('active');
+  } else {
+    const edited = editor.value;
+    versions[activeVer] = edited;
+    preview.textContent = edited;
+    preview.style.display = 'block';
+    editor.style.display = 'none';
+    btn.textContent = '✏️ Edit';
+    btn.classList.remove('active');
+    updateStats(edited);
+  }
+}
+
+function syncEdit() {
+  updateStats(document.getElementById('postEdit').value);
+}
+
+function updateStats(text) {
+  const chars = text.length;
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const readSec = Math.ceil(words / 3.5);
+  const charEl = document.getElementById('charOut');
+  charEl.textContent = chars;
+  charEl.className = chars > 3000 ? 'char-over' : chars > 2500 ? 'char-warn' : 'char-ok';
+  document.getElementById('wordCount').textContent = words;
+  document.getElementById('readTime').textContent = readSec < 60 ? `${readSec}s` : `${Math.ceil(readSec/60)}min`;
+}
+
+// ─── Copy & Post ───────────────────────────────────────────────────────────
+function getActiveText() {
+  return editMode ? document.getElementById('postEdit').value : versions[activeVer];
+}
+
+function copyPost() {
+  navigator.clipboard.writeText(getActiveText()).then(() => {
+    const el = document.getElementById('copyTxt');
+    el.textContent = '✅ Copied!';
+    setTimeout(() => el.textContent = '📋 Copy Post', 2000);
+  });
+}
+
+function postToLinkedIn() {
+  const text = getActiveText();
+  const url = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+}
+
+// ─── Error ─────────────────────────────────────────────────────────────────
+function showError(msg) {
+  const card = document.getElementById('errCard');
+  card.style.display = 'block';
+  document.getElementById('errBox').innerHTML =
+    `<strong>⚠️ Something went wrong</strong>${msg}<br><br>
+    Common fixes: check your API key, make sure you have credits at <a href="https://console.anthropic.com" target="_blank" style="color:#991b1b">console.anthropic.com</a>, then try again.`;
+}
+
+// ─── History ───────────────────────────────────────────────────────────────
+function addHistory(topic, cat, post) {
+  history.unshift({ topic, cat, post, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
+  if (history.length > 6) history.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const card = document.getElementById('histCard');
+  const list = document.getElementById('histList');
+  if (history.length < 2) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = history.slice(1).map((h, i) => `
+    <div class="h-item" onclick="loadHist(${i + 1})">
+      <div>
+        <div class="h-topic">"${h.topic}"</div>
+        <div class="h-cat">${h.cat} · ${h.time}</div>
+      </div>
+      <div class="h-arrow">›</div>
+    </div>
+  `).join('');
+}
+
+function loadHist(i) {
+  const h = history[i];
+  if (!h) return;
+  currentTopic = h.topic;
+  versions = [h.post];
+  activeVer = 0;
+  if (editMode) toggleEdit();
+  showPost();
+}
+
+// ─── LinkedIn OAuth ─────────────────────────────────────────────────────────
+let liToken = '';
+let liPersonUrn = '';
+let liUserName = '';
+
+async function loginWithLinkedIn() {
+  const btn = document.getElementById('liLoginBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="border-color:rgba(255,255,255,0.3);border-top-color:white;width:18px;height:18px;border-width:3px;"></div> Connecting…';
+  try {
+    const res = await fetch('/.netlify/functions/config');
+    if (!res.ok) throw new Error('Could not load config. Make sure the app is deployed to Netlify.');
+    const { clientId } = await res.json();
+    if (!clientId) throw new Error('LINKEDIN_CLIENT_ID not set in Netlify environment variables.');
+    const redirectUri = `${window.location.origin}/.netlify/functions/linkedin-auth`;
+    const scope = 'profile email w_member_social openid';
+    const state = Math.random().toString(36).slice(2);
+    sessionStorage.setItem('li_state', state);
+    window.location.href = [
+      'https://www.linkedin.com/oauth/v2/authorization',
+      `?response_type=code`,
+      `&client_id=${encodeURIComponent(clientId)}`,
+      `&redirect_uri=${encodeURIComponent(redirectUri)}`,
+      `&scope=${encodeURIComponent(scope)}`,
+      `&state=${state}`,
+    ].join('');
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> Login with LinkedIn';
+    setLiStatus('❌ ' + e.message, false);
+  }
+}
+
+async function connectLiWithToken(token) {
+  liToken = token;
+  setLiStatus('🔄 Loading your profile…', true);
+  try {
+    const res = await fetch('/.netlify/functions/linkedin-me', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error(`Profile fetch failed (${res.status})`);
+    const data = await res.json();
+    liPersonUrn = `urn:li:person:${data.id}`;
+    liUserName = [data.localizedFirstName, data.localizedLastName].filter(Boolean).join(' ') || 'LinkedIn User';
+    showLiConnected();
+  } catch (e) {
+    liToken = '';
+    setLiStatus('❌ Login failed: ' + e.message, false);
+  }
+}
+
+function showLiConnected() {
+  document.getElementById('liLoginView').style.display = 'none';
+  document.getElementById('liConnectedView').style.display = 'block';
+  document.getElementById('liSection').classList.add('connected');
+  document.getElementById('liUserName').textContent = liUserName;
+  document.getElementById('liAvatar').textContent = liUserName.charAt(0).toUpperCase();
+  document.getElementById('liPostTxt').textContent = '🚀 Publish to LinkedIn';
+}
+
+function logoutLinkedIn() {
+  liToken = ''; liPersonUrn = ''; liUserName = '';
+  document.getElementById('liLoginView').style.display = 'block';
+  document.getElementById('liConnectedView').style.display = 'none';
+  document.getElementById('liSection').classList.remove('connected');
+  document.getElementById('liSection').style.border = '';
+  document.getElementById('liPostTxt').textContent = 'Post to LinkedIn';
+  setLiStatus('', true);
+}
+
+function setLiStatus(msg, ok) {
+  const el = document.getElementById('liStatus');
+  el.textContent = msg;
+  el.className = 'li-status ' + (ok ? 'li-status-ok' : 'li-status-err');
+}
+
+function handleLinkedInPost() {
+  if (liToken && liPersonUrn) publishToLinkedIn();
+  else openLinkedInComposer();
+}
+
+async function publishToLinkedIn() {
+  const text = getActiveText();
+  const btn = document.getElementById('liPostBtn');
+  const txtEl = document.getElementById('liPostTxt');
+  btn.disabled = true;
+  txtEl.textContent = 'Publishing…';
+  showToast('🔄 Publishing your post to LinkedIn…', 'loading');
+  try {
+    const res = await fetch('/.netlify/functions/linkedin-post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${liToken}` },
+      body: JSON.stringify({ text, authorUrn: liPersonUrn })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || err.error || `Error ${res.status}`);
+    }
+    showToast('🎉 Published! Your post is now live on LinkedIn.', 'ok');
+    txtEl.textContent = '✅ Published!';
+    setTimeout(() => { txtEl.textContent = '🚀 Publish to LinkedIn'; btn.disabled = false; }, 4000);
+  } catch (e) {
+    showToast(`❌ Failed: ${e.message}`, 'err');
+    txtEl.textContent = '🚀 Publish to LinkedIn';
+    btn.disabled = false;
+  }
+}
+
+function openLinkedInComposer() {
+  const text = getActiveText();
+  window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function showToast(msg, type) {
+  const el = document.getElementById('postToast');
+  el.textContent = msg;
+  el.className = `post-toast toast-${type}`;
+  el.style.display = 'block';
+  if (type === 'ok') setTimeout(() => el.style.display = 'none', 7000);
+}
+
+// ─── Handle OAuth return ────────────────────────────────────────────────────
+function checkOAuthReturn() {
+  const hash = window.location.hash;
+  if (!hash) return;
+  const params = new URLSearchParams(hash.slice(1));
+  const token = params.get('li_token');
+  const error = params.get('li_error');
+  // Clean the URL immediately
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+  if (token) {
+    connectLiWithToken(token);
+  } else if (error) {
+    setLiStatus('❌ Login failed: ' + decodeURIComponent(error), false);
+  }
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────
+if (window.location.protocol !== 'file:') {
+  document.getElementById('hostBanner').style.display = 'none';
+}
+checkOAuthReturn();
+</script>
+</body>
+</html>
