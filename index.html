@@ -318,7 +318,7 @@ let currentTopic = '';
 let versions = [];
 let activeVer = 0;
 let editMode = false;
-let history = [];
+let postHistory = [];
 let liToken = '';
 let liPersonUrn = '';
 let liUserName = '';
@@ -478,16 +478,16 @@ function showError(msg) {
 
 // ── History ────────────────────────────────────────────────────────────────
 function addHistory(topic, cat, post) {
-  history.unshift({ topic, cat, post, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
-  if (history.length > 6) history.pop();
+  postHistory.unshift({ topic, cat, post, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
+  if (postHistory.length > 6) postHistory.pop();
   renderHistory();
 }
 function renderHistory() {
   const card = document.getElementById('histCard');
   const list = document.getElementById('histList');
-  if (history.length < 2) { card.style.display = 'none'; return; }
+  if (postHistory.length < 2) { card.style.display = 'none'; return; }
   card.style.display = 'block';
-  list.innerHTML = history.slice(1).map((h, i) =>
+  list.innerHTML = postHistory.slice(1).map((h, i) =>
     `<div class="h-item" onclick="loadHist(${i+1})">
       <div><div class="h-topic">"${h.topic}"</div><div class="h-cat">${h.cat} · ${h.time}</div></div>
       <div class="h-arrow">›</div>
@@ -495,7 +495,7 @@ function renderHistory() {
   ).join('');
 }
 function loadHist(i) {
-  const h = history[i]; if (!h) return;
+  const h = postHistory[i]; if (!h) return;
   currentTopic = h.topic; versions = [h.post]; activeVer = 0;
   if (editMode) toggleEdit(); showPost();
 }
@@ -615,51 +615,32 @@ function showToast(msg, type) {
 
 // ── Handle OAuth return ────────────────────────────────────────────────────
 function checkOAuthReturn() {
-  // Method 1: Token comes back in URL hash (normal flow)
+  // Method 1: Token comes back in URL hash (normal flow — auth function redirected here)
   const hash = window.location.hash;
   if (hash && hash.includes('li_token=')) {
     const params = new URLSearchParams(hash.slice(1));
     const token = params.get('li_token');
-    history.replaceState(null, '', window.location.pathname);
+    window.history.replaceState(null, '', window.location.pathname);
     if (token) { connectLiWithToken(token); return; }
   }
   if (hash && hash.includes('li_error=')) {
     const params = new URLSearchParams(hash.slice(1));
     const error = params.get('li_error');
-    history.replaceState(null, '', window.location.pathname);
+    window.history.replaceState(null, '', window.location.pathname);
     setLiStatus('❌ Login failed: ' + decodeURIComponent(error || 'Unknown error'), false);
     return;
   }
 
-  // Method 2: Fallback — if ?code= is in the URL, the auth function may have
-  // failed to exchange it. Try exchanging it via a direct call to the auth function.
+  // Method 2: Fallback — if ?code= lands on the homepage (shouldn't happen normally,
+  // but just in case), exchange the code by calling the auth function via fetch with
+  // redirect: 'follow' so we end up at /#li_token=... then re-check the hash.
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
   if (code) {
-    history.replaceState(null, '', window.location.pathname);
+    window.history.replaceState(null, '', window.location.pathname);
     setLiStatus('🔄 Completing LinkedIn login…', true);
-    // Call the auth function directly and follow its redirect
-    fetch(`/.netlify/functions/linkedin-auth?code=${encodeURIComponent(code)}`, { redirect: 'manual' })
-      .then(res => {
-        const location = res.headers.get('Location') || '';
-        if (location.includes('li_token=')) {
-          const hashPart = location.split('#')[1] || '';
-          const p = new URLSearchParams(hashPart);
-          const token = p.get('li_token');
-          if (token) { connectLiWithToken(token); return; }
-        }
-        // If we get here, parse error from location
-        if (location.includes('li_error=')) {
-          const hashPart = location.split('#')[1] || '';
-          const p = new URLSearchParams(hashPart);
-          setLiStatus('❌ ' + decodeURIComponent(p.get('li_error') || 'Auth failed'), false);
-        } else {
-          setLiStatus('❌ Login failed. Check Netlify function logs for details.', false);
-        }
-      })
-      .catch(e => {
-        setLiStatus('❌ Login error: ' + e.message, false);
-      });
+    // Navigate to the auth function so it can exchange the code and redirect back
+    window.location.href = `/.netlify/functions/linkedin-auth?code=${encodeURIComponent(code)}`;
   }
 }
 
