@@ -1,4 +1,4 @@
-// Fetches the logged-in LinkedIn member's profile
+// Fetches the logged-in LinkedIn member's profile via OpenID Connect userinfo endpoint
 // Proxied here to avoid browser CORS restrictions on api.linkedin.com
 exports.handler = async (event) => {
   const CORS_HEADERS = {
@@ -17,14 +17,32 @@ exports.handler = async (event) => {
   }
 
   try {
-    const res = await fetch('https://api.linkedin.com/v2/me', {
+    // Use the OpenID Connect userinfo endpoint (works with "Sign In with LinkedIn using OpenID Connect")
+    const res = await fetch('https://api.linkedin.com/v2/userinfo', {
       headers: {
         Authorization: `Bearer ${token}`,
-        'X-Restli-Protocol-Version': '2.0.0',
       },
     });
     const data = await res.json();
-    return { statusCode: res.status, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
+
+    if (!res.ok) {
+      return { statusCode: res.status, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
+    }
+
+    // Map OpenID Connect fields to the format the frontend expects
+    // userinfo returns: sub, name, given_name, family_name, picture, email, email_verified
+    return {
+      statusCode: 200,
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: data.sub,
+        localizedFirstName: data.given_name || '',
+        localizedLastName: data.family_name || '',
+        name: data.name || '',
+        picture: data.picture || '',
+        email: data.email || '',
+      }),
+    };
   } catch (e) {
     return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: e.message }) };
   }

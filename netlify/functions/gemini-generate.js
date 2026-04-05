@@ -39,9 +39,9 @@ exports.handler = async (event) => {
   const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging');
 
   try {
-    // Use gemini-1.5-flash — better free tier availability than 2.0-flash
+    // Use gemini-2.5-flash — free tier: 10 RPM, 250 requests/day
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
