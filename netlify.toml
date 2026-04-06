@@ -10,6 +10,12 @@
   node_bundler = "nft"
   external_node_modules = ["@netlify/blobs", "@netlify/functions"]
 
+[functions."schedule-cron"]
+  schedule = "0 * * * *"
+
+[functions."weekly-cron"]
+  schedule = "0 6 * * 1"
+
 [[headers]]
   for = "/*"
   [headers.values]

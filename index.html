@@ -249,6 +249,44 @@
     .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; }
 
     /* ── BULK SCHEDULE ────────────────────────────────── */
+    /* ── WEEKLY AUTO-POST ─────────────────────────────── */
+    .weekly-section { border: 2px solid #34d399; background: linear-gradient(135deg, #f0fdf9, #ecfdf5); }
+    .weekly-title { font-size: 17px; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .weekly-desc { font-size: 13px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+    .weekly-field { margin-bottom: 16px; }
+    .weekly-field label { display: block; font-weight: 700; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .weekly-row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .weekly-row .bulk-field { flex: 1; min-width: 140px; }
+    .weekly-row .bulk-field select { width: 100%; padding: 10px 14px; border-radius: 10px; border: 2px solid var(--border); font-size: 14px; font-family: inherit; color: var(--text); background: white; outline: none; }
+    .weekly-row .bulk-field select:focus { border-color: #10b981; }
+    .weekly-toggle-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding: 12px 16px; background: white; border-radius: 12px; border: 1.5px solid #a7f3d0; }
+    .weekly-toggle-label { flex: 1; }
+    .weekly-toggle-label strong { font-size: 13px; font-weight: 700; color: var(--text); display: block; }
+    .weekly-toggle-label span { font-size: 11px; color: var(--muted); }
+    .toggle-green input:checked + .toggle-slider { background: #10b981; }
+    .weekly-last { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 16px; }
+    .btn-weekly-save { padding: 12px 22px; border-radius: 12px; border: none; background: #10b981; color: white; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .btn-weekly-save:hover { background: #059669; transform: translateY(-1px); }
+    .btn-weekly-now {
+      width: 100%; margin-top: 14px; padding: 16px; border-radius: 14px; border: none;
+      cursor: pointer; font-weight: 800; font-size: 15px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white; box-shadow: 0 5px 20px rgba(16,185,129,0.35);
+      transition: all 0.25s; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: inherit;
+    }
+    .btn-weekly-now:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(16,185,129,0.45); }
+    .btn-weekly-now:disabled { background: #6ee7b7; box-shadow: none; cursor: not-allowed; }
+    .weekly-progress { margin-top: 14px; display: none; }
+    .weekly-progress-bar { height: 8px; background: #e5e7eb; border-radius: 100px; overflow: hidden; }
+    .weekly-progress-fill { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 100px; transition: width 0.5s; width: 0%; }
+    .weekly-status { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
+    .weekly-results { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .weekly-result-item { padding: 12px 14px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .weekly-result-ok { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+    .weekly-result-err { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .angle-tag { display: inline-block; font-size: 10px; font-weight: 700; background: #d1fae5; color: #065f46; border-radius: 100px; padding: 2px 8px; margin-left: 6px; }
+
+    /* ── BULK SCHEDULE ────────────────────────────────── */
     .bulk-section { border: 2px solid #c4b5fd; background: linear-gradient(135deg, #faf5ff, #f5f3ff); }
     .bulk-title { font-size: 17px; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
     .bulk-desc { font-size: 13px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
@@ -437,6 +475,99 @@
   <div class="card" id="histCard" style="display:none;">
     <h3 style="font-size:15px;font-weight:800;margin-bottom:16px;">Previous Posts</h3>
     <div class="history-grid" id="histList"></div>
+  </div>
+
+  <!-- ═══════════════ WEEKLY AUTO-POST ═══════════════ -->
+  <div class="card weekly-section" id="weeklyCard">
+    <div class="weekly-title">🗓️ Weekly Auto-Post — 7 Days from 1 Topic</div>
+    <div class="weekly-desc">Enter one topic. AI generates 7 unique posts (one per day, each from a different angle) and schedules them across the week. Enable auto-mode and it regenerates every Monday automatically.</div>
+
+    <!-- Enable/disable toggle -->
+    <div class="weekly-toggle-row">
+      <div class="weekly-toggle-label">
+        <strong>Auto-generate every week</strong>
+        <span>When ON, every Monday at 6 AM a fresh week of 7 posts is generated from your saved topic.</span>
+      </div>
+      <label class="toggle toggle-green">
+        <input type="checkbox" id="weeklyEnabled" onchange="saveWeeklySetting('enabled', this.checked)" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Topic -->
+    <div class="weekly-field">
+      <label class="field-label">Weekly topic</label>
+      <input type="text" id="weeklyTopic" placeholder="e.g. AI agents in enterprise, Founder mindset, Future of remote work..." />
+    </div>
+
+    <!-- Settings row -->
+    <div class="weekly-row" style="margin-bottom:16px;">
+      <div class="bulk-field">
+        <label>Category</label>
+        <select id="weeklyCategory">
+          <option value="AI & Technology">AI &amp; Technology</option>
+          <option value="Business & Entrepreneurship">Business</option>
+          <option value="Career & Growth">Career &amp; Growth</option>
+          <option value="General">General</option>
+        </select>
+      </div>
+      <div class="bulk-field">
+        <label>Tone</label>
+        <select id="weeklyTone">
+          <option value="Conversational & engaging">Conversational</option>
+          <option value="Thought leadership — data-driven, authoritative">Thought Leader</option>
+          <option value="Storytelling — personal experience, lessons learned">Storytelling</option>
+          <option value="Punchy & bold — contrarian takes, provocative">Bold &amp; Punchy</option>
+        </select>
+      </div>
+      <div class="bulk-field">
+        <label>Post time (daily)</label>
+        <select id="weeklyTime">
+          <option value="08:00">8:00 AM</option>
+          <option value="09:00">9:00 AM</option>
+          <option value="10:00" selected>10:00 AM</option>
+          <option value="12:00">12:00 PM</option>
+          <option value="14:00">2:00 PM</option>
+          <option value="17:00">5:00 PM</option>
+          <option value="19:00">7:00 PM</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button class="btn-weekly-save" onclick="saveWeeklySettings()">Save Settings</button>
+      </div>
+    </div>
+
+    <div class="weekly-last" id="weeklyLastRun"></div>
+
+    <!-- 7 angles preview -->
+    <div style="margin: 16px 0; padding: 14px 16px; background: white; border-radius: 12px; border: 1px solid #a7f3d0; font-size: 12px; color: var(--muted); line-height: 2;">
+      <strong style="color:var(--text); display:block; margin-bottom:6px;">Posts generated each week:</strong>
+      Mon <span class="angle-tag">Data & Stats</span> &nbsp;·&nbsp;
+      Tue <span class="angle-tag">Contrarian Take</span> &nbsp;·&nbsp;
+      Wed <span class="angle-tag">Practical How-To</span> &nbsp;·&nbsp;
+      Thu <span class="angle-tag">Personal Story</span> &nbsp;·&nbsp;
+      Fri <span class="angle-tag">Future Prediction</span> &nbsp;·&nbsp;
+      Sat <span class="angle-tag">Industry Trend</span> &nbsp;·&nbsp;
+      Sun <span class="angle-tag">Mindset & Reflection</span>
+    </div>
+
+    <!-- Start date for manual generation -->
+    <div class="weekly-field">
+      <label class="field-label">Start date (for "Generate Now")</label>
+      <input type="date" id="weeklyStartDate" style="width:100%;padding:12px 16px;border-radius:12px;border:2px solid var(--border);font-size:14px;font-family:inherit;outline:none;" />
+    </div>
+
+    <!-- Generate Now button -->
+    <button class="btn-weekly-now" id="weeklyNowBtn" onclick="generateWeekNow()">
+      <span id="weeklyNowIcon">✨</span>
+      <span id="weeklyNowText">Generate This Week's 7 Posts Now</span>
+    </button>
+
+    <div class="weekly-progress" id="weeklyProgress">
+      <div class="weekly-progress-bar"><div class="weekly-progress-fill" id="weeklyFill"></div></div>
+      <div class="weekly-status" id="weeklyStatus">Generating post 1 of 7...</div>
+    </div>
+    <div class="weekly-results" id="weeklyResults"></div>
   </div>
 
   <!-- ═══════════════ BULK SCHEDULE ═══════════════ -->
@@ -1181,6 +1312,186 @@ async function bulkGenerate() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// WEEKLY AUTO-POST
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadWeeklySettings() {
+  try {
+    const res = await fetch('/.netlify/functions/weekly-settings');
+    const data = await res.json();
+    if (data.topic)    document.getElementById('weeklyTopic').value = data.topic;
+    if (data.category) document.getElementById('weeklyCategory').value = data.category;
+    if (data.tone)     document.getElementById('weeklyTone').value = data.tone;
+    if (data.postTime) document.getElementById('weeklyTime').value = data.postTime;
+    document.getElementById('weeklyEnabled').checked = !!data.enabled;
+    if (data.lastGeneratedWeek) {
+      const d = new Date(data.lastGeneratedWeek);
+      document.getElementById('weeklyLastRun').textContent =
+        'Last auto-generated: ' + d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  } catch {}
+}
+
+async function saveWeeklySettings() {
+  const topic   = document.getElementById('weeklyTopic').value.trim();
+  const category = document.getElementById('weeklyCategory').value;
+  const tone    = document.getElementById('weeklyTone').value;
+  const postTime = document.getElementById('weeklyTime').value;
+  const enabled = document.getElementById('weeklyEnabled').checked;
+
+  if (!topic) { alert('Please enter a weekly topic before saving.'); return; }
+
+  try {
+    const res = await fetch('/.netlify/functions/weekly-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, category, tone, postTime, enabled })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    const btn = document.querySelector('.btn-weekly-save');
+    btn.textContent = 'Saved ✓';
+    setTimeout(() => btn.textContent = 'Save Settings', 2500);
+  } catch (e) {
+    alert('Failed to save: ' + e.message);
+  }
+}
+
+async function saveWeeklySetting(key, value) {
+  try {
+    await fetch('/.netlify/functions/weekly-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [key]: value })
+    });
+  } catch {}
+}
+
+function initWeeklyDefaults() {
+  const today = new Date();
+  // Start on next Monday
+  const daysUntilMonday = (1 - today.getDay() + 7) % 7 || 7;
+  const nextMonday = new Date(today);
+  nextMonday.setDate(today.getDate() + daysUntilMonday);
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('weeklyStartDate').value =
+    nextMonday.getFullYear() + '-' + pad(nextMonday.getMonth()+1) + '-' + pad(nextMonday.getDate());
+}
+
+const WEEKLY_ANGLES = [
+  { day: 'Mon', angle: 'Data & Statistics' },
+  { day: 'Tue', angle: 'Contrarian Take' },
+  { day: 'Wed', angle: 'Practical How-To' },
+  { day: 'Thu', angle: 'Personal Story' },
+  { day: 'Fri', angle: 'Future Prediction' },
+  { day: 'Sat', angle: 'Industry Trend' },
+  { day: 'Sun', angle: 'Mindset & Reflection' },
+];
+
+async function generateWeekNow() {
+  const topic = document.getElementById('weeklyTopic').value.trim();
+  if (!topic) { alert('Please enter a weekly topic first.'); document.getElementById('weeklyTopic').focus(); return; }
+
+  const startDate = document.getElementById('weeklyStartDate').value;
+  if (!startDate) { alert('Please set a start date.'); return; }
+
+  const timeVal = document.getElementById('weeklyTime').value;
+  const category = document.getElementById('weeklyCategory').value;
+  const tone = document.getElementById('weeklyTone').value;
+
+  const btn = document.getElementById('weeklyNowBtn');
+  btn.disabled = true;
+  document.getElementById('weeklyNowIcon').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('weeklyNowText').textContent = 'Generating 7 posts... (this takes ~1 min)';
+
+  const progressEl = document.getElementById('weeklyProgress');
+  progressEl.style.display = 'block';
+  const fillEl = document.getElementById('weeklyFill');
+  const statusEl = document.getElementById('weeklyStatus');
+  const resultsEl = document.getElementById('weeklyResults');
+  resultsEl.innerHTML = '';
+  fillEl.style.width = '2%';
+  statusEl.textContent = 'Calling AI to generate 7 unique posts...';
+
+  try {
+    // Single call to gemini-weekly — server handles all 7 posts with rate-limit delays
+    const res = await fetch('/.netlify/functions/gemini-weekly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, category, tone })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Generation failed');
+
+    const results = data.results || [];
+    fillEl.style.width = '60%';
+    statusEl.textContent = 'Saving ' + results.filter(r => r.post).length + ' posts to calendar...';
+
+    // Schedule each post
+    let scheduled = 0;
+    let failed = 0;
+
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const pct = 60 + Math.round(((i + 1) / results.length) * 40);
+      fillEl.style.width = pct + '%';
+
+      if (r.error || !r.post) {
+        failed++;
+        resultsEl.innerHTML += '<div class="weekly-result-item weekly-result-err">❌ ' + (r.day || 'Day ' + (i+1)) + ' — ' + (r.error || 'No post generated') + '</div>';
+        continue;
+      }
+
+      const schedDate = new Date(startDate + 'T' + timeVal + ':00');
+      schedDate.setDate(schedDate.getDate() + i);
+
+      try {
+        const saveRes = await fetch('/.netlify/functions/schedule-posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: topic + ' (' + (WEEKLY_ANGLES[i] ? WEEKLY_ANGLES[i].angle : r.angle) + ')',
+            category,
+            tone,
+            text: r.post,
+            status: approvalRequired ? 'draft' : 'approved',
+            scheduledDate: schedDate.toISOString()
+          })
+        });
+        const saveData = await saveRes.json();
+        if (!saveRes.ok) throw new Error(saveData.error || 'Save failed');
+        scheduledPosts = saveData.posts || scheduledPosts;
+        scheduled++;
+        const dateStr = schedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const angle = WEEKLY_ANGLES[i] ? WEEKLY_ANGLES[i].angle : r.angle;
+        resultsEl.innerHTML += '<div class="weekly-result-item weekly-result-ok">✅ ' + (r.day || dateStr) + ' — <span class="angle-tag">' + angle + '</span> — ' + dateStr + (approvalRequired ? ' (draft)' : ' (approved)') + '</div>';
+      } catch (e) {
+        failed++;
+        resultsEl.innerHTML += '<div class="weekly-result-item weekly-result-err">❌ ' + r.day + ' — Could not save: ' + e.message + '</div>';
+      }
+    }
+
+    fillEl.style.width = '100%';
+    statusEl.textContent = 'Done! ' + scheduled + ' posts scheduled' + (failed ? ', ' + failed + ' failed' : '') + '.';
+    renderCalendar();
+
+    // Also save settings so the weekly cron uses them
+    await fetch('/.netlify/functions/weekly-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, category, tone, postTime: timeVal })
+    });
+
+  } catch (e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    fillEl.style.width = '0%';
+  }
+
+  btn.disabled = false;
+  document.getElementById('weeklyNowIcon').textContent = '✨';
+  document.getElementById('weeklyNowText').textContent = 'Generate This Week\'s 7 Posts Now';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // OAUTH RETURN
 // ══════════════════════════════════════════════════════════════════════════════
 function checkOAuthReturn() {
@@ -1216,6 +1527,8 @@ loadCalendar();
 loadSettings();
 checkTokenStatus();
 initBulkDefaults();
+initWeeklyDefaults();
+loadWeeklySettings();
 </script>
 </body>
 </html>
