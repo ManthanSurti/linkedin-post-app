@@ -520,10 +520,7 @@
 
     <!-- Scheduled post list -->
     <div class="sched-list" id="schedList">
-      <div class="empty-state" id="calEmpty">
-        <div class="empty-icon">&#128197;</div>
-        No scheduled posts yet.<br>Generate a post above and click <strong>Schedule</strong> to plan your content.
-      </div>
+      <div class="empty-state"><div class="empty-icon">&#128197;</div>No scheduled posts yet.<br>Generate a post above and click <strong>Schedule</strong> to plan your content.</div>
     </div>
   </div>
 
@@ -955,12 +952,11 @@ function setFilter(f, el) {
 
 function renderCalendar() {
   const list = document.getElementById('schedList');
-  const empty = document.getElementById('calEmpty');
   const countEl = document.getElementById('calCount');
 
-  let filtered = scheduledPosts;
+  let filtered = scheduledPosts.slice();
   if (currentFilter !== 'all') {
-    filtered = scheduledPosts.filter(p => p.status === currentFilter);
+    filtered = filtered.filter(p => p.status === currentFilter);
   }
 
   // Sort by scheduledDate ascending (upcoming first)
@@ -969,16 +965,13 @@ function renderCalendar() {
   countEl.textContent = scheduledPosts.length;
 
   if (!filtered.length) {
-    list.innerHTML = '';
-    empty.style.display = 'block';
-    empty.querySelector('.empty-icon').textContent = currentFilter === 'all' ? '\u{1F4C5}' : '\u{1F50D}';
-    empty.innerHTML = currentFilter === 'all'
-      ? '<div class="empty-icon">\u{1F4C5}</div>No scheduled posts yet.<br>Generate a post above and click <strong>Schedule</strong>.'
-      : '<div class="empty-icon">\u{1F50D}</div>No <strong>' + currentFilter + '</strong> posts.';
+    const icon = currentFilter === 'all' ? '\u{1F4C5}' : '\u{1F50D}';
+    const msg = currentFilter === 'all'
+      ? 'No scheduled posts yet.<br>Generate a post above and click <strong>Schedule</strong>.'
+      : 'No <strong>' + currentFilter + '</strong> posts.';
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">' + icon + '</div>' + msg + '</div>';
     return;
   }
-
-  empty.style.display = 'none';
 
   list.innerHTML = filtered.map(p => {
     const d = p.scheduledDate ? new Date(p.scheduledDate) : null;
@@ -1107,16 +1100,14 @@ async function bulkGenerate() {
 
   const topics = raw.split('\n').map(t => t.trim()).filter(Boolean);
   if (!topics.length) { alert('Please enter at least one topic.'); return; }
-  if (topics.length > 14) { alert('Maximum 14 topics per batch (API rate limits).'); return; }
+  if (topics.length > 14) { alert('Maximum 14 topics per batch.'); return; }
 
   const startDate = document.getElementById('bulkStartDate').value;
   if (!startDate) { alert('Please pick a start date.'); return; }
 
   const freq = parseInt(document.getElementById('bulkFrequency').value, 10);
   const timeVal = document.getElementById('bulkTime').value;
-  const [hours, mins] = timeVal.split(':').map(Number);
 
-  // Disable button, show progress
   const btn = document.getElementById('bulkBtn');
   btn.disabled = true;
   document.getElementById('bulkIcon').innerHTML = '<div class="spinner"></div>';
@@ -1127,80 +1118,66 @@ async function bulkGenerate() {
   const statusEl = document.getElementById('bulkStatus');
   const resultsEl = document.getElementById('bulkResults');
   resultsEl.innerHTML = '';
-  fillEl.style.width = '5%';
-  statusEl.textContent = 'Sending topics to AI (this may take a few minutes)...';
+  fillEl.style.width = '2%';
 
-  try {
-    // Call bulk generation endpoint
-    const res = await fetch('/.netlify/functions/gemini-bulk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topics, category: currentCat, tone: currentTone })
-    });
+  let scheduled = 0;
+  let failed = 0;
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Bulk generation failed');
+  // Generate and schedule one topic at a time (avoids server timeout)
+  for (let i = 0; i < topics.length; i++) {
+    const topic = topics[i];
+    const pct = Math.round(((i + 0.5) / topics.length) * 100);
+    fillEl.style.width = pct + '%';
+    statusEl.textContent = 'Generating post ' + (i+1) + ' of ' + topics.length + ': "' + topic.slice(0, 40) + '"...';
 
-    const results = data.results || [];
-    fillEl.style.width = '60%';
-    statusEl.textContent = 'Generated! Now scheduling posts...';
+    try {
+      // 1. Generate the post via existing single-post endpoint
+      const genRes = await fetch('/.netlify/functions/gemini-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, category: currentCat, tone: currentTone })
+      });
+      const genData = await genRes.json();
+      if (!genRes.ok) throw new Error(genData.error || 'Generation failed');
 
-    // Schedule each successful post
-    let scheduled = 0;
-    let failed = 0;
-
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
-      const pct = 60 + Math.round(((i + 1) / results.length) * 35);
-      fillEl.style.width = pct + '%';
-
-      if (r.error) {
-        failed++;
-        resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-err">&#10060; ' + r.topic + ' — ' + r.error + '</div>';
-        continue;
-      }
-
-      // Calculate schedule date for this post
+      // 2. Calculate schedule date
       const schedDate = new Date(startDate + 'T' + timeVal + ':00');
       schedDate.setDate(schedDate.getDate() + (i * freq));
 
-      try {
-        const saveRes = await fetch('/.netlify/functions/schedule-posts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: r.topic,
-            category: currentCat,
-            tone: currentTone,
-            text: r.post,
-            status: approvalRequired ? 'draft' : 'approved',
-            scheduledDate: schedDate.toISOString()
-          })
-        });
-        const saveData = await saveRes.json();
-        if (!saveRes.ok) throw new Error(saveData.error || 'Save failed');
-        scheduledPosts = saveData.posts || scheduledPosts;
-        scheduled++;
-        const dateStr = schedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-ok">&#9989; ' + r.topic + ' &mdash; ' + dateStr + (approvalRequired ? ' (draft)' : ' (approved)') + '</div>';
-      } catch (e) {
-        failed++;
-        resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-err">&#10060; ' + r.topic + ' — scheduling failed: ' + e.message + '</div>';
-      }
+      // 3. Save to schedule
+      const saveRes = await fetch('/.netlify/functions/schedule-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: topic,
+          category: currentCat,
+          tone: currentTone,
+          text: genData.post,
+          status: approvalRequired ? 'draft' : 'approved',
+          scheduledDate: schedDate.toISOString()
+        })
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.error || 'Save failed');
+      scheduledPosts = saveData.posts || scheduledPosts;
+      scheduled++;
+      const dateStr = schedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-ok">&#9989; ' + topic + ' &mdash; ' + dateStr + (approvalRequired ? ' (draft)' : ' (approved)') + '</div>';
+    } catch (e) {
+      failed++;
+      resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-err">&#10060; ' + topic + ' &mdash; ' + e.message + '</div>';
     }
 
-    fillEl.style.width = '100%';
-    statusEl.textContent = 'Done! ' + scheduled + ' posts scheduled' + (failed ? ', ' + failed + ' failed' : '') + '.';
-    renderCalendar();
-
-  } catch (e) {
-    statusEl.textContent = 'Error: ' + e.message;
-    resultsEl.innerHTML = '<div class="bulk-result-item bulk-result-err">&#10060; ' + e.message + '</div>';
-  } finally {
-    btn.disabled = false;
-    document.getElementById('bulkIcon').textContent = '\u{1F680}';
-    document.getElementById('bulkText').textContent = 'Generate & Schedule All Posts';
+    fillEl.style.width = Math.round(((i + 1) / topics.length) * 100) + '%';
   }
+
+  statusEl.textContent = 'Done! ' + scheduled + ' posts scheduled' + (failed ? ', ' + failed + ' failed' : '') + '.';
+  fillEl.style.width = '100%';
+  renderCalendar();
+
+  btn.disabled = false;
+  document.getElementById('bulkIcon').textContent = '\u{1F680}';
+  document.getElementById('bulkText').textContent = 'Generate & Schedule All Posts';
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
