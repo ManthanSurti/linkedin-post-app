@@ -248,6 +248,46 @@
     .empty-state { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 14px; }
     .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; }
 
+    /* ── BULK SCHEDULE ────────────────────────────────── */
+    .bulk-section { border: 2px solid #c4b5fd; background: linear-gradient(135deg, #faf5ff, #f5f3ff); }
+    .bulk-title { font-size: 17px; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .bulk-desc { font-size: 13px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+    .bulk-textarea {
+      width: 100%; min-height: 140px; padding: 14px 16px; border-radius: 12px;
+      border: 2px solid var(--border); font-size: 14px; font-family: inherit;
+      color: var(--text); resize: vertical; line-height: 1.8; outline: none;
+    }
+    .bulk-textarea:focus { border-color: #7c3aed; }
+    .bulk-textarea::placeholder { color: #c4c9d4; }
+    .bulk-settings { display: flex; gap: 14px; margin-top: 14px; flex-wrap: wrap; align-items: end; }
+    .bulk-field { flex: 1; min-width: 160px; }
+    .bulk-field label { display: block; font-weight: 700; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .bulk-field select {
+      width: 100%; padding: 10px 14px; border-radius: 10px; border: 2px solid var(--border);
+      font-size: 14px; font-family: inherit; color: var(--text); background: white; outline: none;
+    }
+    .bulk-field select:focus { border-color: #7c3aed; }
+    .btn-bulk {
+      width: 100%; margin-top: 18px; padding: 16px; border-radius: 14px; border: none;
+      cursor: pointer; font-weight: 800; font-size: 15px;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: white; box-shadow: 0 5px 20px rgba(124,58,237,0.35);
+      transition: all 0.25s; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: inherit;
+    }
+    .btn-bulk:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,58,237,0.45); }
+    .btn-bulk:disabled { background: #c4b5fd; box-shadow: none; cursor: not-allowed; }
+    .bulk-progress { margin-top: 14px; display: none; }
+    .bulk-progress-bar { height: 8px; background: #e5e7eb; border-radius: 100px; overflow: hidden; }
+    .bulk-progress-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #a78bfa); border-radius: 100px; transition: width 0.5s; width: 0%; }
+    .bulk-status { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
+    .bulk-results { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .bulk-result-item {
+      padding: 12px 14px; border-radius: 10px; font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .bulk-result-ok { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+    .bulk-result-err { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
     footer { text-align: center; font-size: 12px; color: #c4c9d4; margin-top: 16px; }
     @media (max-width: 520px) { h1 { font-size: 24px; } .card { padding: 20px; } .btn-row { flex-direction: column; } }
   </style>
@@ -397,6 +437,52 @@
   <div class="card" id="histCard" style="display:none;">
     <h3 style="font-size:15px;font-weight:800;margin-bottom:16px;">Previous Posts</h3>
     <div class="history-grid" id="histList"></div>
+  </div>
+
+  <!-- ═══════════════ BULK SCHEDULE ═══════════════ -->
+  <div class="card bulk-section" id="bulkCard">
+    <div class="bulk-title">Bulk Schedule — Plan Your Week</div>
+    <div class="bulk-desc">Enter one topic per line. AI will generate a unique post for each and schedule them across your chosen timeframe.</div>
+
+    <textarea class="bulk-textarea" id="bulkTopics" placeholder="AI replacing junior developers&#10;Why bootstrapping beats VC in 2026&#10;The hidden cost of technical debt&#10;Remote work is not dead&#10;How to negotiate your first raise&#10;Lessons from failing at my first startup&#10;The underrated skill in tech: writing"></textarea>
+
+    <div class="bulk-settings">
+      <div class="bulk-field">
+        <label>Start date</label>
+        <input type="date" id="bulkStartDate" style="width:100%;padding:10px 14px;border-radius:10px;border:2px solid var(--border);font-size:14px;font-family:inherit;outline:none;" />
+      </div>
+      <div class="bulk-field">
+        <label>Posting frequency</label>
+        <select id="bulkFrequency">
+          <option value="1">Every day</option>
+          <option value="2">Every 2 days</option>
+          <option value="3">Every 3 days</option>
+          <option value="7">Once a week</option>
+        </select>
+      </div>
+      <div class="bulk-field">
+        <label>Time of day</label>
+        <select id="bulkTime">
+          <option value="09:00">9:00 AM</option>
+          <option value="10:00" selected>10:00 AM</option>
+          <option value="12:00">12:00 PM</option>
+          <option value="14:00">2:00 PM</option>
+          <option value="17:00">5:00 PM</option>
+          <option value="19:00">7:00 PM</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-bulk" id="bulkBtn" onclick="bulkGenerate()">
+      <span id="bulkIcon">&#128640;</span>
+      <span id="bulkText">Generate & Schedule All Posts</span>
+    </button>
+
+    <div class="bulk-progress" id="bulkProgress">
+      <div class="bulk-progress-bar"><div class="bulk-progress-fill" id="bulkFill"></div></div>
+      <div class="bulk-status" id="bulkStatus">Generating...</div>
+    </div>
+    <div class="bulk-results" id="bulkResults"></div>
   </div>
 
   <!-- ═══════════════ CONTENT CALENDAR ═══════════════ -->
@@ -1005,6 +1091,119 @@ async function checkTokenStatus() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// BULK GENERATE & SCHEDULE
+// ══════════════════════════════════════════════════════════════════════════════
+function initBulkDefaults() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('bulkStartDate').value =
+    tomorrow.getFullYear() + '-' + pad(tomorrow.getMonth()+1) + '-' + pad(tomorrow.getDate());
+}
+
+async function bulkGenerate() {
+  const raw = document.getElementById('bulkTopics').value.trim();
+  if (!raw) { alert('Please enter at least one topic.'); return; }
+
+  const topics = raw.split('\n').map(t => t.trim()).filter(Boolean);
+  if (!topics.length) { alert('Please enter at least one topic.'); return; }
+  if (topics.length > 14) { alert('Maximum 14 topics per batch (API rate limits).'); return; }
+
+  const startDate = document.getElementById('bulkStartDate').value;
+  if (!startDate) { alert('Please pick a start date.'); return; }
+
+  const freq = parseInt(document.getElementById('bulkFrequency').value, 10);
+  const timeVal = document.getElementById('bulkTime').value;
+  const [hours, mins] = timeVal.split(':').map(Number);
+
+  // Disable button, show progress
+  const btn = document.getElementById('bulkBtn');
+  btn.disabled = true;
+  document.getElementById('bulkIcon').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('bulkText').textContent = 'Generating ' + topics.length + ' posts...';
+  const progressEl = document.getElementById('bulkProgress');
+  progressEl.style.display = 'block';
+  const fillEl = document.getElementById('bulkFill');
+  const statusEl = document.getElementById('bulkStatus');
+  const resultsEl = document.getElementById('bulkResults');
+  resultsEl.innerHTML = '';
+  fillEl.style.width = '5%';
+  statusEl.textContent = 'Sending topics to AI (this may take a few minutes)...';
+
+  try {
+    // Call bulk generation endpoint
+    const res = await fetch('/.netlify/functions/gemini-bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topics, category: currentCat, tone: currentTone })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Bulk generation failed');
+
+    const results = data.results || [];
+    fillEl.style.width = '60%';
+    statusEl.textContent = 'Generated! Now scheduling posts...';
+
+    // Schedule each successful post
+    let scheduled = 0;
+    let failed = 0;
+
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const pct = 60 + Math.round(((i + 1) / results.length) * 35);
+      fillEl.style.width = pct + '%';
+
+      if (r.error) {
+        failed++;
+        resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-err">&#10060; ' + r.topic + ' — ' + r.error + '</div>';
+        continue;
+      }
+
+      // Calculate schedule date for this post
+      const schedDate = new Date(startDate + 'T' + timeVal + ':00');
+      schedDate.setDate(schedDate.getDate() + (i * freq));
+
+      try {
+        const saveRes = await fetch('/.netlify/functions/schedule-posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: r.topic,
+            category: currentCat,
+            tone: currentTone,
+            text: r.post,
+            status: approvalRequired ? 'draft' : 'approved',
+            scheduledDate: schedDate.toISOString()
+          })
+        });
+        const saveData = await saveRes.json();
+        if (!saveRes.ok) throw new Error(saveData.error || 'Save failed');
+        scheduledPosts = saveData.posts || scheduledPosts;
+        scheduled++;
+        const dateStr = schedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-ok">&#9989; ' + r.topic + ' &mdash; ' + dateStr + (approvalRequired ? ' (draft)' : ' (approved)') + '</div>';
+      } catch (e) {
+        failed++;
+        resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-err">&#10060; ' + r.topic + ' — scheduling failed: ' + e.message + '</div>';
+      }
+    }
+
+    fillEl.style.width = '100%';
+    statusEl.textContent = 'Done! ' + scheduled + ' posts scheduled' + (failed ? ', ' + failed + ' failed' : '') + '.';
+    renderCalendar();
+
+  } catch (e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    resultsEl.innerHTML = '<div class="bulk-result-item bulk-result-err">&#10060; ' + e.message + '</div>';
+  } finally {
+    btn.disabled = false;
+    document.getElementById('bulkIcon').textContent = '\u{1F680}';
+    document.getElementById('bulkText').textContent = 'Generate & Schedule All Posts';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // OAUTH RETURN
 // ══════════════════════════════════════════════════════════════════════════════
 function checkOAuthReturn() {
@@ -1039,6 +1238,7 @@ checkOAuthReturn();
 loadCalendar();
 loadSettings();
 checkTokenStatus();
+initBulkDefaults();
 </script>
 </body>
 </html>
