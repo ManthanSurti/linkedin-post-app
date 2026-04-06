@@ -19,7 +19,7 @@ function getPostStore(event) {
   } catch (e) {
     console.log('connectLambda not available, proceeding without it:', e.message);
   }
-  return getStore({ name: 'app-data', consistency: 'strong' });
+  return getStore({ name: 'app-data', consistency: 'eventual' });
 }
 
 async function getPosts(store) {

@@ -18,7 +18,7 @@ function getBlobStore(event) {
   } catch (e) {
     console.log('connectLambda not available:', e.message);
   }
-  return getStore({ name: 'app-data', consistency: 'strong' });
+  return getStore({ name: 'app-data', consistency: 'eventual' });
 }
 
 exports.handler = async (event) => {

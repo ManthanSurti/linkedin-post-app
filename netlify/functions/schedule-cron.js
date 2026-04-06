@@ -3,7 +3,7 @@ const { schedule } = require('@netlify/functions');
 const { getStore } = require('@netlify/blobs');
 
 const handler = async (event) => {
-  const store = getStore({ name: 'app-data', consistency: 'strong' });
+  const store = getStore({ name: 'app-data', consistency: 'eventual' });
 
   // 1. Check for a valid LinkedIn token
   let tokenData;
