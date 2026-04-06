@@ -74,8 +74,8 @@
 
     /* Form */
     label.field-label { display: block; font-weight: 700; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-    input[type="text"] { width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--border); font-size: 15px; color: var(--text); outline: none; transition: border-color 0.2s; font-family: inherit; }
-    input[type="text"]:focus { border-color: var(--li-blue); }
+    input[type="text"], input[type="datetime-local"] { width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--border); font-size: 15px; color: var(--text); outline: none; transition: border-color 0.2s; font-family: inherit; }
+    input[type="text"]:focus, input[type="datetime-local"]:focus { border-color: var(--li-blue); }
 
     /* Category / Tone chips */
     .chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
@@ -127,17 +127,34 @@
     .char-over { color: var(--danger); font-weight: 700; }
 
     /* Action buttons */
-    .btn-row { display: flex; gap: 12px; margin-top: 18px; }
+    .btn-row { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
     .btn-action {
-      flex: 1; padding: 15px; border-radius: 14px; border: none; font-weight: 800; font-size: 14px;
+      flex: 1; min-width: 120px; padding: 15px; border-radius: 14px; border: none; font-weight: 800; font-size: 14px;
       cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
       transition: all 0.2s; font-family: inherit;
     }
     .btn-copy-post { background: white; color: var(--li-blue); border: 2px solid var(--li-blue); }
     .btn-copy-post:hover { background: #e8f4fb; }
+    .btn-schedule { background: white; color: #7c3aed; border: 2px solid #7c3aed; }
+    .btn-schedule:hover { background: #f5f3ff; }
     .btn-publish { background: #0077b5; color: white; box-shadow: 0 4px 16px rgba(0,119,181,0.35); }
     .btn-publish:hover:not(:disabled) { background: #005885; transform: translateY(-1px); }
     .btn-publish:disabled { background: #93c5fd; cursor: not-allowed; box-shadow: none; }
+
+    /* Schedule panel */
+    .schedule-panel {
+      display: none; margin-top: 14px; padding: 18px; background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+      border-radius: 14px; border: 1.5px solid #c4b5fd;
+    }
+    .schedule-panel .sp-row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+    .schedule-panel .sp-field { flex: 1; min-width: 200px; }
+    .btn-schedule-confirm {
+      padding: 14px 24px; border-radius: 12px; border: none; background: #7c3aed; color: white;
+      font-weight: 800; font-size: 14px; cursor: pointer; white-space: nowrap; font-family: inherit;
+      box-shadow: 0 4px 16px rgba(124,58,237,0.35); transition: all 0.2s;
+    }
+    .btn-schedule-confirm:hover { background: #6d28d9; transform: translateY(-1px); }
+    .btn-schedule-confirm:disabled { background: #c4b5fd; cursor: not-allowed; }
 
     /* Toast */
     .toast { display: none; margin-top: 12px; padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; text-align: center; }
@@ -161,6 +178,76 @@
     .h-cat { font-size: 12px; color: var(--muted); margin-top: 3px; }
     .h-arrow { color: var(--li-blue); font-size: 18px; flex-shrink: 0; }
 
+    /* ── CONTENT CALENDAR ────────────────────────────────── */
+    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+    .cal-title { font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .cal-count { background: var(--li-blue); color: white; border-radius: 100px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
+
+    /* Toggle switch */
+    .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding: 12px 16px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--border); }
+    .toggle-label { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+    .toggle-sub { font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+    .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #d1d5db; border-radius: 24px; cursor: pointer; transition: 0.3s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%; transition: 0.3s;
+    }
+    .toggle input:checked + .toggle-slider { background: #7c3aed; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    /* Token warning */
+    .token-warn {
+      display: none; padding: 10px 14px; background: #fffbeb; border: 1px solid #fde68a;
+      border-radius: 10px; font-size: 12px; color: #92400e; margin-bottom: 14px; line-height: 1.5;
+    }
+
+    /* Filter tabs */
+    .filter-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+    .filter-tab { padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: white; color: var(--muted); transition: all 0.2s; font-family: inherit; }
+    .filter-tab.on { border-color: var(--li-blue); background: var(--li-blue); color: white; }
+
+    /* Post list items */
+    .sched-list { display: flex; flex-direction: column; gap: 10px; }
+    .sched-item {
+      padding: 16px 18px; background: #fafbff; border-radius: 14px;
+      border: 1.5px solid var(--border); transition: all 0.2s;
+    }
+    .sched-item:hover { border-color: #c4b5fd; }
+    .si-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+    .si-topic { font-weight: 700; font-size: 14px; flex: 1; }
+    .si-badge {
+      padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 700;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .badge-draft { background: #f3f4f6; color: #6b7280; }
+    .badge-approved { background: #dbeafe; color: #1d4ed8; }
+    .badge-scheduled { background: #ede9fe; color: #7c3aed; }
+    .badge-published { background: #dcfce7; color: #15803d; }
+    .badge-failed { background: #fef2f2; color: #dc2626; }
+    .si-date { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .si-preview { font-size: 13px; color: #475569; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .si-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .si-btn {
+      padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700;
+      cursor: pointer; border: 1.5px solid var(--border); background: white; color: var(--muted);
+      transition: all 0.2s; font-family: inherit;
+    }
+    .si-btn:hover { border-color: var(--li-blue); color: var(--li-blue); }
+    .si-btn-approve { border-color: #86efac; color: #15803d; background: #f0fdf4; }
+    .si-btn-approve:hover { background: #dcfce7; }
+    .si-btn-delete { border-color: #fecaca; color: #dc2626; }
+    .si-btn-delete:hover { background: #fef2f2; }
+    .si-btn-retry { border-color: #fde68a; color: #92400e; }
+    .si-btn-retry:hover { background: #fffbeb; }
+
+    .empty-state { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 14px; }
+    .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; }
+
     footer { text-align: center; font-size: 12px; color: #c4c9d4; margin-top: 16px; }
     @media (max-width: 520px) { h1 { font-size: 24px; } .card { padding: 20px; } .btn-row { flex-direction: column; } }
   </style>
@@ -176,7 +263,7 @@
     </div>
     <h1>AI-Researched Posts That<br><em>Actually Get Engagement</em></h1>
     <p class="tagline">Not templates. Real AI research. Unique insights every time.</p>
-    <div class="ai-pill">⚡ Powered by Gemini AI</div>
+    <div class="ai-pill">Powered by Gemini AI</div>
   </div>
 
   <!-- LinkedIn Login -->
@@ -185,25 +272,21 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="#0077b5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
       <h3>Connect LinkedIn</h3>
     </div>
-
-    <!-- Logged out -->
     <div id="liLoginView">
-      <p class="li-sec-desc">Log in once with your LinkedIn account — posts go live with one click, no copy-pasting ever again.</p>
+      <p class="li-sec-desc">Log in once with your LinkedIn account — posts go live with one click or auto-publish on schedule.</p>
       <button class="btn-li-login" id="liLoginBtn" onclick="loginWithLinkedIn()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
         Login with LinkedIn
       </button>
       <div id="liStatus" class="li-status"></div>
     </div>
-
-    <!-- Logged in -->
     <div id="liConnectedView" style="display:none;">
       <div class="li-connected-row">
         <div class="li-user-info">
           <div class="li-user-avatar" id="liAvatar">M</div>
           <div>
             <div class="li-user-name" id="liUserName">LinkedIn User</div>
-            <div class="li-user-sub">✅ Connected · ready to post</div>
+            <div class="li-user-sub" id="liUserSub">Connected &middot; ready to post</div>
           </div>
         </div>
         <button class="btn-logout" onclick="logoutLinkedIn()">Disconnect</button>
@@ -214,34 +297,31 @@
   <!-- Post generator form -->
   <div class="card">
     <div style="margin-bottom:22px;">
-      <label class="field-label">📌 Topic to post about</label>
+      <label class="field-label">Topic to post about</label>
       <input type="text" id="topicInput"
-        placeholder="e.g. AI agents replacing junior devs, bootstrapping vs VC, prompt engineering…"
+        placeholder="e.g. AI agents replacing junior devs, bootstrapping vs VC, prompt engineering..."
         onkeydown="if(event.key==='Enter') generate()" />
     </div>
-
     <div style="margin-bottom:22px;">
-      <label class="field-label">🏷️ Category</label>
+      <label class="field-label">Category</label>
       <div class="chips">
-        <button class="chip on" onclick="setChip(this,'cat','AI & Technology')">🤖 AI & Technology</button>
-        <button class="chip" onclick="setChip(this,'cat','Business & Entrepreneurship')">💼 Business</button>
-        <button class="chip" onclick="setChip(this,'cat','Career & Growth')">🚀 Career & Growth</button>
-        <button class="chip" onclick="setChip(this,'cat','Custom')">✨ Custom</button>
+        <button class="chip on" onclick="setChip(this,'cat','AI & Technology')">AI & Technology</button>
+        <button class="chip" onclick="setChip(this,'cat','Business & Entrepreneurship')">Business</button>
+        <button class="chip" onclick="setChip(this,'cat','Career & Growth')">Career & Growth</button>
+        <button class="chip" onclick="setChip(this,'cat','Custom')">Custom</button>
       </div>
     </div>
-
     <div>
-      <label class="field-label">🎭 Tone</label>
+      <label class="field-label">Tone</label>
       <div class="chips">
-        <button class="tone-chip on" onclick="setChip(this,'tone','Conversational & engaging — like a smart friend sharing insights')">Conversational</button>
-        <button class="tone-chip" onclick="setChip(this,'tone','Thought leadership — data-driven, authoritative, credible')">Thought Leader</button>
-        <button class="tone-chip" onclick="setChip(this,'tone','Storytelling — personal experience, lessons learned, emotional')">Storytelling</button>
-        <button class="tone-chip" onclick="setChip(this,'tone','Punchy & bold — short sentences, contrarian takes, provocative')">Bold & Punchy</button>
+        <button class="tone-chip on" onclick="setChip(this,'tone','Conversational & engaging')">Conversational</button>
+        <button class="tone-chip" onclick="setChip(this,'tone','Thought leadership — data-driven, authoritative')">Thought Leader</button>
+        <button class="tone-chip" onclick="setChip(this,'tone','Storytelling — personal experience, lessons learned')">Storytelling</button>
+        <button class="tone-chip" onclick="setChip(this,'tone','Punchy & bold — contrarian takes, provocative')">Bold & Punchy</button>
       </div>
     </div>
-
     <button class="btn-gen" id="genBtn" onclick="generate()">
-      <span id="genIcon">✨</span>
+      <span id="genIcon">&#10024;</span>
       <span id="genText">Generate AI Post</span>
     </button>
   </div>
@@ -262,58 +342,114 @@
   <!-- Output -->
   <div class="card" id="outCard" style="display:none;">
     <div class="out-header">
-      <div class="out-title">📝 Your Post <span class="quality-badge">✅ AI-researched</span></div>
+      <div class="out-title">Your Post <span class="quality-badge">AI-researched</span></div>
       <div class="toolbar">
-        <button class="btn-tool" id="editBtn" onclick="toggleEdit()">✏️ Edit</button>
-        <button class="btn-tool" onclick="regenerate()">🔄 New version</button>
+        <button class="btn-tool" id="editBtn" onclick="toggleEdit()">Edit</button>
+        <button class="btn-tool" onclick="regenerate()">New version</button>
       </div>
     </div>
-
     <div class="versions" id="versionTabs"></div>
-
     <div class="li-preview">
       <div class="li-top">
         <div class="avatar">M</div>
         <div>
           <div class="li-name-txt">Manthan Surti</div>
-          <div class="li-meta">Just now · 🌐</div>
+          <div class="li-meta">Just now</div>
         </div>
       </div>
       <div id="postPreview" class="post-body"></div>
       <textarea id="postEdit" class="post-edit" style="display:none;" oninput="syncStats()"></textarea>
     </div>
-
     <div class="stats-bar">
       <div class="stat">Characters: <span id="charOut" class="char-ok">0</span> / 3,000</div>
-      <div class="stat">Words: <span id="wordOut">–</span></div>
-      <div class="stat">Read time: <span id="readOut">–</span></div>
+      <div class="stat">Words: <span id="wordOut">-</span></div>
+      <div class="stat">Read time: <span id="readOut">-</span></div>
     </div>
-
     <div class="btn-row">
       <button class="btn-action btn-copy-post" onclick="copyPost()">
-        <span id="copyTxt">📋 Copy</span>
+        <span id="copyTxt">Copy</span>
+      </button>
+      <button class="btn-action btn-schedule" onclick="toggleSchedulePanel()">
+        Schedule
       </button>
       <button class="btn-action btn-publish" id="publishBtn" onclick="handlePost()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style="flex-shrink:0"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
         <span id="publishTxt">Post to LinkedIn</span>
       </button>
     </div>
+
+    <!-- Schedule panel (slides open) -->
+    <div class="schedule-panel" id="schedulePanel">
+      <div class="sp-row">
+        <div class="sp-field">
+          <label class="field-label">Pick date & time</label>
+          <input type="datetime-local" id="scheduleDate" />
+        </div>
+        <button class="btn-schedule-confirm" id="schedConfirmBtn" onclick="scheduleCurrentPost()">
+          Schedule Post
+        </button>
+      </div>
+    </div>
+
     <div class="toast" id="postToast"></div>
   </div>
 
   <!-- History -->
   <div class="card" id="histCard" style="display:none;">
-    <h3 style="font-size:15px;font-weight:800;margin-bottom:16px;">🕐 Previous Posts</h3>
+    <h3 style="font-size:15px;font-weight:800;margin-bottom:16px;">Previous Posts</h3>
     <div class="history-grid" id="histList"></div>
   </div>
 
-  <footer>Built for Manthan Surti · Powered by Gemini AI & LinkedIn API · 2026</footer>
+  <!-- ═══════════════ CONTENT CALENDAR ═══════════════ -->
+  <div class="card" id="calCard">
+    <div class="cal-header">
+      <div class="cal-title">Content Calendar <span class="cal-count" id="calCount">0</span></div>
+      <button class="btn-tool" onclick="loadCalendar()" id="calRefresh">Refresh</button>
+    </div>
+
+    <!-- Approval toggle -->
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Require approval before auto-publish</div>
+        <div class="toggle-sub">When ON, posts must be approved before they go live. When OFF, scheduled posts publish automatically.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="approvalToggle" checked onchange="saveApprovalSetting(this.checked)" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Token expiry warning -->
+    <div class="token-warn" id="tokenWarn">
+      Your LinkedIn token expires on <strong id="tokenExpDate">-</strong>. You'll need to re-login before then for scheduled posts to auto-publish.
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="filter-tabs" id="filterTabs">
+      <button class="filter-tab on" onclick="setFilter('all',this)">All</button>
+      <button class="filter-tab" onclick="setFilter('draft',this)">Drafts</button>
+      <button class="filter-tab" onclick="setFilter('approved',this)">Approved</button>
+      <button class="filter-tab" onclick="setFilter('published',this)">Published</button>
+      <button class="filter-tab" onclick="setFilter('failed',this)">Failed</button>
+    </div>
+
+    <!-- Scheduled post list -->
+    <div class="sched-list" id="schedList">
+      <div class="empty-state" id="calEmpty">
+        <div class="empty-icon">&#128197;</div>
+        No scheduled posts yet.<br>Generate a post above and click <strong>Schedule</strong> to plan your content.
+      </div>
+    </div>
+  </div>
+
+  <footer>Built for Manthan Surti &middot; Powered by Gemini AI & LinkedIn API &middot; 2026</footer>
 </div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════════
 let currentCat  = 'AI & Technology';
-let currentTone = 'Conversational & engaging — like a smart friend sharing insights';
+let currentTone = 'Conversational & engaging';
 let currentTopic = '';
 let versions = [];
 let activeVer = 0;
@@ -322,17 +458,24 @@ let postHistory = [];
 let liToken = '';
 let liPersonUrn = '';
 let liUserName = '';
+let liExpiresIn = 0;
+let scheduledPosts = [];
+let currentFilter = 'all';
+let approvalRequired = true;
 
-// ── Chip selectors ─────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// CHIPS
+// ══════════════════════════════════════════════════════════════════════════════
 function setChip(el, type, val) {
-  const selector = type === 'cat' ? '.chip' : '.tone-chip';
-  document.querySelectorAll(selector).forEach(c => c.classList.remove('on'));
+  const sel = type === 'cat' ? '.chip' : '.tone-chip';
+  document.querySelectorAll(sel).forEach(c => c.classList.remove('on'));
   el.classList.add('on');
-  if (type === 'cat') currentCat = val;
-  else currentTone = val;
+  if (type === 'cat') currentCat = val; else currentTone = val;
 }
 
-// ── Generate ───────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// GENERATE
+// ══════════════════════════════════════════════════════════════════════════════
 async function generate() {
   const topic = document.getElementById('topicInput').value.trim();
   if (!topic) { document.getElementById('topicInput').focus(); return; }
@@ -345,17 +488,14 @@ async function generate() {
       body: JSON.stringify({ topic, category: currentCat, tone: currentTone })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    if (!res.ok) throw new Error(data.error || 'Error ' + res.status);
     versions.unshift(data.post);
     if (versions.length > 3) versions.pop();
     activeVer = 0;
     showPost();
     addHistory(topic, currentCat, data.post);
-  } catch (e) {
-    showError(e.message);
-  } finally {
-    setLoading(false);
-  }
+  } catch (e) { showError(e.message); }
+  finally { setLoading(false); }
 }
 
 async function regenerate() {
@@ -368,40 +508,46 @@ async function regenerate() {
       body: JSON.stringify({ topic: currentTopic, category: currentCat, tone: currentTone })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    if (!res.ok) throw new Error(data.error || 'Error ' + res.status);
     versions.unshift(data.post);
     if (versions.length > 3) versions.pop();
     activeVer = 0;
     showPost();
-  } catch (e) {
-    showError(e.message);
-  } finally {
-    setLoading(false);
-  }
+  } catch (e) { showError(e.message); }
+  finally { setLoading(false); }
 }
 
-// ── Loading ────────────────────────────────────────────────────────────────
-const STEPS = ['🔍 Researching your topic…','💡 Finding unique angles…','✍️ Crafting your hook…','📊 Weaving in data points…','✨ Polishing for engagement…'];
+// ══════════════════════════════════════════════════════════════════════════════
+// LOADING / ERROR
+// ══════════════════════════════════════════════════════════════════════════════
+const STEPS = ['Researching your topic...','Finding unique angles...','Crafting your hook...','Weaving in data points...','Polishing for engagement...'];
 function setLoading(on) {
   document.getElementById('loadCard').style.display = on ? 'block' : 'none';
   document.getElementById('outCard').style.display  = on ? 'none' : (versions.length ? 'block' : 'none');
-  if (on) document.getElementById('errCard').style.display = 'none'; // only hide error when starting load, not when stopping
+  if (on) document.getElementById('errCard').style.display = 'none';
   const btn = document.getElementById('genBtn');
   btn.disabled = on;
-  document.getElementById('genIcon').innerHTML = on ? '<div class="spinner"></div>' : '✨';
-  document.getElementById('genText').textContent = on ? 'Generating…' : 'Generate AI Post';
+  document.getElementById('genIcon').innerHTML = on ? '<div class="spinner"></div>' : '&#10024;';
+  document.getElementById('genText').textContent = on ? 'Generating...' : 'Generate AI Post';
   if (on) {
-    const el = document.getElementById('loadSteps');
-    el.innerHTML = '';
+    const el = document.getElementById('loadSteps'); el.innerHTML = '';
     STEPS.forEach((s, i) => {
       const d = document.createElement('div');
-      d.className = 'step'; d.textContent = s; d.style.animationDelay = `${i * 0.7}s`;
+      d.className = 'step'; d.textContent = s; d.style.animationDelay = i * 0.7 + 's';
       el.appendChild(d);
     });
   }
 }
 
-// ── Show post ──────────────────────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById('errCard').style.display = 'block';
+  document.getElementById('errBox').innerHTML =
+    '<strong>Something went wrong</strong><br>' + msg + '<br><br>Make sure the app is deployed on Netlify with the GEMINI_API_KEY environment variable set.';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SHOW POST / VERSIONS / EDIT
+// ══════════════════════════════════════════════════════════════════════════════
 function showPost() {
   if (editMode) toggleEdit();
   const post = versions[activeVer];
@@ -417,7 +563,7 @@ function renderVersionTabs() {
   const el = document.getElementById('versionTabs');
   if (versions.length < 2) { el.innerHTML = ''; return; }
   el.innerHTML = versions.map((_, i) =>
-    `<button class="ver-btn ${i === activeVer ? 'on' : ''}" onclick="switchVer(${i})">Version ${i+1}</button>`
+    '<button class="ver-btn ' + (i === activeVer ? 'on' : '') + '" onclick="switchVer(' + i + ')">Version ' + (i+1) + '</button>'
   ).join('');
 }
 
@@ -437,11 +583,11 @@ function toggleEdit() {
   const btn     = document.getElementById('editBtn');
   if (editMode) {
     preview.style.display = 'none'; editor.style.display = 'block'; editor.focus();
-    btn.textContent = '👁️ Preview'; btn.classList.add('active');
+    btn.textContent = 'Preview'; btn.classList.add('active');
   } else {
     versions[activeVer] = editor.value;
     preview.textContent = versions[activeVer]; preview.style.display = 'block'; editor.style.display = 'none';
-    btn.textContent = '✏️ Edit'; btn.classList.remove('active');
+    btn.textContent = 'Edit'; btn.classList.remove('active');
     updateStats(versions[activeVer]);
   }
 }
@@ -465,18 +611,14 @@ function getActiveText() {
 function copyPost() {
   navigator.clipboard.writeText(getActiveText()).then(() => {
     const el = document.getElementById('copyTxt');
-    el.textContent = '✅ Copied!';
-    setTimeout(() => el.textContent = '📋 Copy', 2000);
+    el.textContent = 'Copied!';
+    setTimeout(() => el.textContent = 'Copy', 2000);
   });
 }
 
-function showError(msg) {
-  document.getElementById('errCard').style.display = 'block';
-  document.getElementById('errBox').innerHTML =
-    `<strong>⚠️ Something went wrong</strong>${msg}<br><br>Make sure the app is deployed on Netlify with the GEMINI_API_KEY environment variable set.`;
-}
-
-// ── History ────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// HISTORY (in-memory)
+// ══════════════════════════════════════════════════════════════════════════════
 function addHistory(topic, cat, post) {
   postHistory.unshift({ topic, cat, post, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
   if (postHistory.length > 6) postHistory.pop();
@@ -488,10 +630,9 @@ function renderHistory() {
   if (postHistory.length < 2) { card.style.display = 'none'; return; }
   card.style.display = 'block';
   list.innerHTML = postHistory.slice(1).map((h, i) =>
-    `<div class="h-item" onclick="loadHist(${i+1})">
-      <div><div class="h-topic">"${h.topic}"</div><div class="h-cat">${h.cat} · ${h.time}</div></div>
-      <div class="h-arrow">›</div>
-    </div>`
+    '<div class="h-item" onclick="loadHist(' + (i+1) + ')">' +
+      '<div><div class="h-topic">"' + h.topic + '"</div><div class="h-cat">' + h.cat + ' &middot; ' + h.time + '</div></div>' +
+      '<div class="h-arrow">&rsaquo;</div></div>'
   ).join('');
 }
 function loadHist(i) {
@@ -500,50 +641,66 @@ function loadHist(i) {
   if (editMode) toggleEdit(); showPost();
 }
 
-// ── LinkedIn OAuth ─────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// LINKEDIN OAUTH
+// ══════════════════════════════════════════════════════════════════════════════
 async function loginWithLinkedIn() {
   const btn = document.getElementById('liLoginBtn');
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="border-color:rgba(255,255,255,0.3);border-top-color:white;width:18px;height:18px;border-width:3px;margin:0 auto;"></div>';
-  setLiStatus('Connecting to LinkedIn…', true);
+  setLiStatus('Connecting to LinkedIn...', true);
   try {
     const res = await fetch('/.netlify/functions/config');
-    if (!res.ok) throw new Error('App is not deployed on Netlify yet, or LINKEDIN_CLIENT_ID is missing from environment variables.');
+    if (!res.ok) throw new Error('App not deployed or LINKEDIN_CLIENT_ID missing.');
     const { clientId } = await res.json();
-    if (!clientId) throw new Error('LINKEDIN_CLIENT_ID is not set in Netlify environment variables.');
-    const redirectUri = `${window.location.origin}/.netlify/functions/linkedin-auth`;
+    if (!clientId) throw new Error('LINKEDIN_CLIENT_ID is not set.');
+    const redirectUri = window.location.origin + '/.netlify/functions/linkedin-auth';
     const scope = 'profile email w_member_social openid';
     const state = Math.random().toString(36).slice(2);
     sessionStorage.setItem('li_state', state);
     window.location.href =
-      `https://www.linkedin.com/oauth/v2/authorization?response_type=code` +
-      `&client_id=${encodeURIComponent(clientId)}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&scope=${encodeURIComponent(scope)}` +
-      `&state=${state}`;
+      'https://www.linkedin.com/oauth/v2/authorization?response_type=code' +
+      '&client_id=' + encodeURIComponent(clientId) +
+      '&redirect_uri=' + encodeURIComponent(redirectUri) +
+      '&scope=' + encodeURIComponent(scope) +
+      '&state=' + state;
   } catch (e) {
     btn.disabled = false;
-    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> Login with LinkedIn`;
-    setLiStatus('❌ ' + e.message, false);
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> Login with LinkedIn';
+    setLiStatus('Error: ' + e.message, false);
   }
 }
 
-async function connectLiWithToken(token) {
+async function connectLiWithToken(token, expiresIn) {
   liToken = token;
-  setLiStatus('Loading your profile…', true);
+  liExpiresIn = expiresIn || 5183999;
+  setLiStatus('Loading your profile...', true);
   try {
     const res = await fetch('/.netlify/functions/linkedin-me', {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: 'Bearer ' + token }
     });
-    if (!res.ok) throw new Error(`Profile fetch failed (${res.status})`);
+    if (!res.ok) throw new Error('Profile fetch failed (' + res.status + ')');
     const data = await res.json();
     if (data.error || !data.id) throw new Error(data.error || 'Could not read LinkedIn profile');
-    liPersonUrn = `urn:li:person:${data.id}`;
-    liUserName = [data.localizedFirstName, data.localizedLastName].filter(Boolean).join(' ') || 'LinkedIn User';
+    liPersonUrn = 'urn:li:person:' + data.id;
+    liUserName = data.name || [data.localizedFirstName, data.localizedLastName].filter(Boolean).join(' ') || 'LinkedIn User';
     showLiConnected();
+
+    // Store token server-side for scheduled publishing
+    fetch('/.netlify/functions/schedule-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, expiresIn: liExpiresIn, personUrn: liPersonUrn, userName: liUserName })
+    }).then(r => r.json()).then(d => {
+      if (d.expiresAt) {
+        document.getElementById('tokenWarn').style.display = 'block';
+        document.getElementById('tokenExpDate').textContent = new Date(d.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      }
+    }).catch(() => {});
+
   } catch (e) {
     liToken = '';
-    setLiStatus('❌ Login failed: ' + e.message, false);
+    setLiStatus('Login failed: ' + e.message, false);
   }
 }
 
@@ -553,7 +710,7 @@ function showLiConnected() {
   document.getElementById('liSection').classList.add('connected');
   document.getElementById('liUserName').textContent = liUserName;
   document.getElementById('liAvatar').textContent = liUserName.charAt(0).toUpperCase();
-  document.getElementById('publishTxt').textContent = '🚀 Publish to LinkedIn';
+  document.getElementById('publishTxt').textContent = 'Publish Now';
   setLiStatus('', true);
 }
 
@@ -563,6 +720,7 @@ function logoutLinkedIn() {
   document.getElementById('liConnectedView').style.display = 'none';
   document.getElementById('liSection').classList.remove('connected');
   document.getElementById('publishTxt').textContent = 'Post to LinkedIn';
+  document.getElementById('tokenWarn').style.display = 'none';
   setLiStatus('', true);
 }
 
@@ -572,7 +730,9 @@ function setLiStatus(msg, ok) {
   el.className = 'li-status ' + (ok ? 'li-ok' : 'li-err');
 }
 
-// ── Post to LinkedIn ───────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// PUBLISH TO LINKEDIN (instant)
+// ══════════════════════════════════════════════════════════════════════════════
 function handlePost() {
   if (liToken && liPersonUrn) publishToLinkedIn();
   else openComposer();
@@ -582,69 +742,303 @@ async function publishToLinkedIn() {
   const text = getActiveText();
   const btn = document.getElementById('publishBtn');
   const txtEl = document.getElementById('publishTxt');
-  btn.disabled = true; txtEl.textContent = 'Publishing…';
-  showToast('🔄 Publishing your post to LinkedIn…', 'loading');
+  btn.disabled = true; txtEl.textContent = 'Publishing...';
+  showToast('Publishing your post to LinkedIn...', 'loading');
   try {
     const res = await fetch('/.netlify/functions/linkedin-post', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${liToken}` },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + liToken },
       body: JSON.stringify({ text, authorUrn: liPersonUrn })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || err.error || `Error ${res.status}`);
+      throw new Error(err.message || err.error || 'Error ' + res.status);
     }
-    showToast('🎉 Published! Your post is now live on LinkedIn.', 'ok');
-    txtEl.textContent = '✅ Published!';
-    setTimeout(() => { txtEl.textContent = '🚀 Publish to LinkedIn'; btn.disabled = false; }, 5000);
+    showToast('Published! Your post is now live on LinkedIn.', 'ok');
+    txtEl.textContent = 'Published!';
+    setTimeout(() => { txtEl.textContent = 'Publish Now'; btn.disabled = false; }, 5000);
   } catch (e) {
-    showToast(`❌ Failed: ${e.message}`, 'err');
-    txtEl.textContent = '🚀 Publish to LinkedIn'; btn.disabled = false;
+    showToast('Failed: ' + e.message, 'err');
+    txtEl.textContent = 'Publish Now'; btn.disabled = false;
   }
 }
 
 function openComposer() {
-  window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(getActiveText())}`, '_blank');
+  window.open('https://www.linkedin.com/feed/?shareActive=true&text=' + encodeURIComponent(getActiveText()), '_blank');
 }
 
 function showToast(msg, type) {
   const el = document.getElementById('postToast');
-  el.textContent = msg; el.className = `toast toast-${type}`; el.style.display = 'block';
+  el.textContent = msg; el.className = 'toast toast-' + type; el.style.display = 'block';
   if (type === 'ok') setTimeout(() => el.style.display = 'none', 7000);
+  if (type === 'err') setTimeout(() => el.style.display = 'none', 10000);
 }
 
-// ── Handle OAuth return ────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// SCHEDULING
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleSchedulePanel() {
+  const panel = document.getElementById('schedulePanel');
+  const isOpen = panel.style.display === 'block';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    // Default: tomorrow at 9am
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+    document.getElementById('scheduleDate').value = toLocalISO(tomorrow);
+  }
+}
+
+function toLocalISO(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+async function scheduleCurrentPost() {
+  const text = getActiveText();
+  const dateVal = document.getElementById('scheduleDate').value;
+  if (!dateVal) { alert('Please pick a date and time.'); return; }
+  const scheduledDate = new Date(dateVal).toISOString();
+  if (new Date(dateVal) < new Date()) { alert('Please pick a future date.'); return; }
+
+  const btn = document.getElementById('schedConfirmBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  try {
+    const status = approvalRequired ? 'draft' : 'approved';
+    const res = await fetch('/.netlify/functions/schedule-posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: currentTopic, category: currentCat, tone: currentTone, text, status, scheduledDate })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save');
+    scheduledPosts = data.posts || [];
+    renderCalendar();
+    document.getElementById('schedulePanel').style.display = 'none';
+    showToast('Post scheduled for ' + new Date(dateVal).toLocaleString() + (approvalRequired ? ' (needs approval)' : ''), 'ok');
+    document.getElementById('calCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    showToast('Failed to schedule: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Schedule Post';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CONTENT CALENDAR
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadCalendar() {
+  try {
+    const res = await fetch('/.netlify/functions/schedule-posts');
+    const data = await res.json();
+    scheduledPosts = data.posts || [];
+    renderCalendar();
+  } catch (e) {
+    console.error('Failed to load calendar:', e);
+  }
+}
+
+async function loadSettings() {
+  try {
+    const res = await fetch('/.netlify/functions/schedule-settings');
+    const data = await res.json();
+    approvalRequired = data.approvalRequired !== false;
+    document.getElementById('approvalToggle').checked = approvalRequired;
+  } catch {}
+}
+
+async function saveApprovalSetting(val) {
+  approvalRequired = val;
+  try {
+    await fetch('/.netlify/functions/schedule-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approvalRequired: val })
+    });
+  } catch {}
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const list = document.getElementById('schedList');
+  const empty = document.getElementById('calEmpty');
+  const countEl = document.getElementById('calCount');
+
+  let filtered = scheduledPosts;
+  if (currentFilter !== 'all') {
+    filtered = scheduledPosts.filter(p => p.status === currentFilter);
+  }
+
+  // Sort by scheduledDate ascending (upcoming first)
+  filtered.sort((a, b) => new Date(a.scheduledDate || 0) - new Date(b.scheduledDate || 0));
+
+  countEl.textContent = scheduledPosts.length;
+
+  if (!filtered.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    empty.querySelector('.empty-icon').textContent = currentFilter === 'all' ? '\u{1F4C5}' : '\u{1F50D}';
+    empty.innerHTML = currentFilter === 'all'
+      ? '<div class="empty-icon">\u{1F4C5}</div>No scheduled posts yet.<br>Generate a post above and click <strong>Schedule</strong>.'
+      : '<div class="empty-icon">\u{1F50D}</div>No <strong>' + currentFilter + '</strong> posts.';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  list.innerHTML = filtered.map(p => {
+    const d = p.scheduledDate ? new Date(p.scheduledDate) : null;
+    const dateStr = d ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'No date';
+    const isPast = d && d < new Date();
+    const statusBadge = '<span class="si-badge badge-' + p.status + '">' + p.status.charAt(0).toUpperCase() + p.status.slice(1) + '</span>';
+    const topicDisplay = p.topic || 'Untitled';
+    const preview = (p.text || '').slice(0, 120) + ((p.text || '').length > 120 ? '...' : '');
+
+    let actions = '';
+    if (p.status === 'draft') {
+      actions = '<button class="si-btn si-btn-approve" onclick="approvePost(\'' + p.id + '\')">Approve</button>' +
+                '<button class="si-btn" onclick="editScheduledPost(\'' + p.id + '\')">Edit</button>' +
+                '<button class="si-btn si-btn-delete" onclick="deletePost(\'' + p.id + '\')">Delete</button>';
+    } else if (p.status === 'approved') {
+      actions = '<button class="si-btn" onclick="editScheduledPost(\'' + p.id + '\')">Edit</button>' +
+                '<button class="si-btn si-btn-delete" onclick="revokeApproval(\'' + p.id + '\')">Revoke</button>' +
+                '<button class="si-btn si-btn-delete" onclick="deletePost(\'' + p.id + '\')">Delete</button>';
+    } else if (p.status === 'failed') {
+      actions = '<button class="si-btn si-btn-retry" onclick="retryPost(\'' + p.id + '\')">Retry</button>' +
+                '<button class="si-btn si-btn-delete" onclick="deletePost(\'' + p.id + '\')">Delete</button>';
+      if (p.error) actions += '<div style="font-size:11px;color:#dc2626;margin-top:6px;">Error: ' + p.error.slice(0, 80) + '</div>';
+    } else if (p.status === 'published') {
+      const pubDate = p.publishedAt ? new Date(p.publishedAt).toLocaleString() : '';
+      actions = '<span style="font-size:11px;color:#15803d;">Published ' + pubDate + '</span>' +
+                '<button class="si-btn si-btn-delete" onclick="deletePost(\'' + p.id + '\')" style="margin-left:auto;">Remove</button>';
+    }
+
+    return '<div class="sched-item">' +
+      '<div class="si-top"><div class="si-topic">' + topicDisplay + '</div>' + statusBadge + '</div>' +
+      '<div class="si-date">' + (isPast && p.status !== 'published' ? '&#9888; Overdue &mdash; ' : '') + dateStr + '</div>' +
+      '<div class="si-preview">' + preview + '</div>' +
+      '<div class="si-actions">' + actions + '</div></div>';
+  }).join('');
+}
+
+// ── Calendar actions ──
+async function approvePost(id) {
+  await updatePostStatus(id, 'approved');
+}
+
+async function revokeApproval(id) {
+  await updatePostStatus(id, 'draft');
+}
+
+async function retryPost(id) {
+  await updatePostStatus(id, 'approved');
+}
+
+async function updatePostStatus(id, status) {
+  try {
+    const res = await fetch('/.netlify/functions/schedule-posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    scheduledPosts = data.posts || [];
+    renderCalendar();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function deletePost(id) {
+  if (!confirm('Delete this scheduled post?')) return;
+  try {
+    const res = await fetch('/.netlify/functions/schedule-posts?id=' + encodeURIComponent(id), { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete');
+    scheduledPosts = scheduledPosts.filter(p => p.id !== id);
+    renderCalendar();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function editScheduledPost(id) {
+  const post = scheduledPosts.find(p => p.id === id);
+  if (!post) return;
+  // Load into editor
+  currentTopic = post.topic;
+  versions = [post.text];
+  activeVer = 0;
+  showPost();
+  // Remove old scheduled version — user will re-schedule after editing
+  deletePost(id);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHECK TOKEN STATUS
+// ══════════════════════════════════════════════════════════════════════════════
+async function checkTokenStatus() {
+  try {
+    const res = await fetch('/.netlify/functions/schedule-token');
+    const data = await res.json();
+    if (data.hasToken && data.expiresAt) {
+      document.getElementById('tokenWarn').style.display = 'block';
+      document.getElementById('tokenExpDate').textContent = new Date(data.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    if (data.expired) {
+      document.getElementById('tokenWarn').style.display = 'block';
+      document.getElementById('tokenWarn').style.background = '#fef2f2';
+      document.getElementById('tokenWarn').style.borderColor = '#fecaca';
+      document.getElementById('tokenWarn').style.color = '#991b1b';
+      document.getElementById('tokenWarn').innerHTML = '<strong>LinkedIn token expired!</strong> Please re-login with LinkedIn above so scheduled posts can auto-publish.';
+    }
+  } catch {}
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// OAUTH RETURN
+// ══════════════════════════════════════════════════════════════════════════════
 function checkOAuthReturn() {
-  // Method 1: Token comes back in URL hash (normal flow — auth function redirected here)
   const hash = window.location.hash;
   if (hash && hash.includes('li_token=')) {
     const params = new URLSearchParams(hash.slice(1));
     const token = params.get('li_token');
+    const expiresIn = parseInt(params.get('li_expires') || '5183999', 10);
     window.history.replaceState(null, '', window.location.pathname);
-    if (token) { connectLiWithToken(token); return; }
+    if (token) { connectLiWithToken(token, expiresIn); return; }
   }
   if (hash && hash.includes('li_error=')) {
     const params = new URLSearchParams(hash.slice(1));
     const error = params.get('li_error');
     window.history.replaceState(null, '', window.location.pathname);
-    setLiStatus('❌ Login failed: ' + decodeURIComponent(error || 'Unknown error'), false);
+    setLiStatus('Login failed: ' + decodeURIComponent(error || 'Unknown error'), false);
     return;
   }
-
-  // Method 2: Fallback — if ?code= lands on the homepage (shouldn't happen normally,
-  // but just in case), exchange the code by calling the auth function via fetch with
-  // redirect: 'follow' so we end up at /#li_token=... then re-check the hash.
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('code');
   if (code) {
     window.history.replaceState(null, '', window.location.pathname);
-    setLiStatus('🔄 Completing LinkedIn login…', true);
-    // Navigate to the auth function so it can exchange the code and redirect back
-    window.location.href = `/.netlify/functions/linkedin-auth?code=${encodeURIComponent(code)}`;
+    setLiStatus('Completing LinkedIn login...', true);
+    window.location.href = '/.netlify/functions/linkedin-auth?code=' + encodeURIComponent(code);
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════════
 checkOAuthReturn();
+loadCalendar();
+loadSettings();
+checkTokenStatus();
 </script>
 </body>
 </html>
