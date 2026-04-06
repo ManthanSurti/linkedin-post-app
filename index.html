@@ -178,6 +178,61 @@
     .h-cat { font-size: 12px; color: var(--muted); margin-top: 3px; }
     .h-arrow { color: var(--li-blue); font-size: 18px; flex-shrink: 0; }
 
+    /* ── MODE TABS ──────────────────────────────────────── */
+    .mode-tabs { display: flex; gap: 4px; margin-bottom: 26px; background: #f1f5f9; border-radius: 14px; padding: 4px; }
+    .mode-tab {
+      flex: 1; padding: 11px 16px; border-radius: 10px; border: none; font-weight: 700;
+      font-size: 14px; cursor: pointer; background: transparent; color: var(--muted);
+      transition: all 0.2s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .mode-tab.on { background: white; color: var(--li-blue); box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .mode-tab .tab-icon { font-size: 16px; }
+
+    /* ── WEEK PLAN inside generator card ─────────────── */
+    .week-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .week-field { flex: 1; min-width: 130px; }
+    .week-field label { display: block; font-weight: 700; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .week-field select, .week-field input[type="date"] {
+      width: 100%; padding: 10px 14px; border-radius: 10px; border: 2px solid var(--border);
+      font-size: 14px; font-family: inherit; color: var(--text); background: white; outline: none;
+    }
+    .week-field select:focus, .week-field input[type="date"]:focus { border-color: #10b981; }
+    .week-auto-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+      padding: 12px 16px; background: #f0fdf9; border-radius: 12px; border: 1.5px solid #a7f3d0;
+    }
+    .week-auto-info { flex: 1; }
+    .week-auto-info strong { font-size: 13px; font-weight: 700; color: var(--text); display: block; }
+    .week-auto-info small { font-size: 11px; color: var(--muted); }
+    .btn-week-save { padding: 9px 16px; border-radius: 9px; border: none; background: #10b981; color: white; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap; }
+    .btn-week-save:hover { background: #059669; }
+    .angle-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .angle-pill-wrap { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+    .angle-day { color: var(--muted); font-weight: 600; }
+    .angle-tag2 { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 100px; background: #d1fae5; color: #065f46; }
+    .week-last { font-size: 12px; color: var(--muted); margin-bottom: 12px; min-height: 16px; }
+    .btn-gen-week {
+      width: 100%; padding: 17px; border-radius: 14px; border: none; cursor: pointer;
+      font-weight: 800; font-size: 16px; background: linear-gradient(135deg, #10b981, #059669);
+      color: white; box-shadow: 0 5px 20px rgba(16,185,129,0.35);
+      transition: all 0.25s; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: inherit;
+    }
+    .btn-gen-week:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(16,185,129,0.45); }
+    .btn-gen-week:disabled { background: #6ee7b7; box-shadow: none; cursor: not-allowed; }
+    .week-progress { margin-top: 14px; display: none; }
+    .week-prog-bar { height: 8px; background: #e5e7eb; border-radius: 100px; overflow: hidden; }
+    .week-prog-fill { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 100px; transition: width 0.5s; width: 0%; }
+    .week-prog-status { font-size: 13px; color: var(--muted); margin-top: 8px; text-align: center; }
+    .week-results-list { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+    .week-result-ok { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; padding: 10px 14px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .week-result-err { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+
+    /* ── CALENDAR LOCK STATE ─────────────────────────── */
+    .cal-lock { text-align: center; padding: 44px 20px 36px; }
+    .cal-lock-icon { font-size: 42px; margin-bottom: 14px; }
+    .cal-lock-title { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+    .cal-lock-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
     /* ── CONTENT CALENDAR ────────────────────────────────── */
     .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
     .cal-title { font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
@@ -372,13 +427,25 @@
     </div>
   </div>
 
-  <!-- Post generator form -->
-  <div class="card">
+  <!-- ═══════════════ CREATE & SCHEDULE ═══════════════ -->
+  <div class="card" id="createCard">
+
+    <!-- Mode tabs -->
+    <div class="mode-tabs">
+      <button class="mode-tab on" id="tabSingle" onclick="setMode('single')">
+        <span class="tab-icon">✏️</span> Single Post
+      </button>
+      <button class="mode-tab" id="tabWeek" onclick="setMode('week')">
+        <span class="tab-icon">🗓️</span> Plan My Week
+      </button>
+    </div>
+
+    <!-- Shared: Topic / Category / Tone -->
     <div style="margin-bottom:22px;">
-      <label class="field-label">Topic to post about</label>
+      <label class="field-label">Topic</label>
       <input type="text" id="topicInput"
         placeholder="e.g. AI agents replacing junior devs, bootstrapping vs VC, prompt engineering..."
-        onkeydown="if(event.key==='Enter') generate()" />
+        onkeydown="if(event.key==='Enter' && currentMode==='single') generate()" />
     </div>
     <div style="margin-bottom:22px;">
       <label class="field-label">Category</label>
@@ -389,7 +456,7 @@
         <button class="chip" onclick="setChip(this,'cat','Custom')">Custom</button>
       </div>
     </div>
-    <div>
+    <div style="margin-bottom:24px;">
       <label class="field-label">Tone</label>
       <div class="chips">
         <button class="tone-chip on" onclick="setChip(this,'tone','Conversational & engaging')">Conversational</button>
@@ -398,10 +465,75 @@
         <button class="tone-chip" onclick="setChip(this,'tone','Punchy & bold — contrarian takes, provocative')">Bold & Punchy</button>
       </div>
     </div>
-    <button class="btn-gen" id="genBtn" onclick="generate()">
-      <span id="genIcon">&#10024;</span>
-      <span id="genText">Generate AI Post</span>
-    </button>
+
+    <!-- ── Single Post mode ── -->
+    <div id="singleActions">
+      <button class="btn-gen" id="genBtn" onclick="generate()">
+        <span id="genIcon">&#10024;</span>
+        <span id="genText">Generate AI Post</span>
+      </button>
+    </div>
+
+    <!-- ── Week Plan mode ── -->
+    <div id="weekActions" style="display:none;">
+      <!-- Date + time -->
+      <div class="week-row">
+        <div class="week-field">
+          <label>Week starts</label>
+          <input type="date" id="weekStartDate" />
+        </div>
+        <div class="week-field">
+          <label>Post time (daily)</label>
+          <select id="weekPostTime">
+            <option value="08:00">8:00 AM</option>
+            <option value="09:00">9:00 AM</option>
+            <option value="10:00" selected>10:00 AM</option>
+            <option value="12:00">12:00 PM</option>
+            <option value="14:00">2:00 PM</option>
+            <option value="17:00">5:00 PM</option>
+            <option value="19:00">7:00 PM</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Auto-weekly toggle -->
+      <div class="week-auto-row">
+        <div class="week-auto-info">
+          <strong>🔄 Auto-generate every Monday</strong>
+          <small>New 7-post week queued automatically each Monday at 6 AM.</small>
+        </div>
+        <label class="toggle toggle-green">
+          <input type="checkbox" id="weekAutoEnabled" onchange="saveWeeklySetting('enabled', this.checked)" />
+          <span class="toggle-slider"></span>
+        </label>
+        <button class="btn-week-save" onclick="saveWeeklySettingsFromCard()">Save</button>
+      </div>
+
+      <!-- 7-angle preview -->
+      <div class="angle-pills">
+        <span class="angle-pill-wrap"><span class="angle-day">Mon</span><span class="angle-tag2">Data & Stats</span></span>
+        <span class="angle-pill-wrap"><span class="angle-day">Tue</span><span class="angle-tag2">Contrarian</span></span>
+        <span class="angle-pill-wrap"><span class="angle-day">Wed</span><span class="angle-tag2">How-To</span></span>
+        <span class="angle-pill-wrap"><span class="angle-day">Thu</span><span class="angle-tag2">Story</span></span>
+        <span class="angle-pill-wrap"><span class="angle-day">Fri</span><span class="angle-tag2">Prediction</span></span>
+        <span class="angle-pill-wrap"><span class="angle-day">Sat</span><span class="angle-tag2">Trend</span></span>
+        <span class="angle-pill-wrap"><span class="angle-day">Sun</span><span class="angle-tag2">Mindset</span></span>
+      </div>
+
+      <div class="week-last" id="weekLastRun"></div>
+
+      <button class="btn-gen-week" id="weekNowBtn" onclick="generateWeekNow()">
+        <span id="weekNowIcon">🚀</span>
+        <span id="weekNowText">Generate This Week's 7 Posts</span>
+      </button>
+
+      <div class="week-progress" id="weekProgress">
+        <div class="week-prog-bar"><div class="week-prog-fill" id="weekFill"></div></div>
+        <div class="week-prog-status" id="weekStatus"></div>
+      </div>
+      <div class="week-results-list" id="weekResultsList"></div>
+    </div>
+
   </div>
 
   <!-- Loading -->
@@ -477,181 +609,52 @@
     <div class="history-grid" id="histList"></div>
   </div>
 
-  <!-- ═══════════════ WEEKLY AUTO-POST ═══════════════ -->
-  <div class="card weekly-section" id="weeklyCard">
-    <div class="weekly-title">🗓️ Weekly Auto-Post — 7 Days from 1 Topic</div>
-    <div class="weekly-desc">Enter one topic. AI generates 7 unique posts (one per day, each from a different angle) and schedules them across the week. Enable auto-mode and it regenerates every Monday automatically.</div>
-
-    <!-- Enable/disable toggle -->
-    <div class="weekly-toggle-row">
-      <div class="weekly-toggle-label">
-        <strong>Auto-generate every week</strong>
-        <span>When ON, every Monday at 6 AM a fresh week of 7 posts is generated from your saved topic.</span>
-      </div>
-      <label class="toggle toggle-green">
-        <input type="checkbox" id="weeklyEnabled" onchange="saveWeeklySetting('enabled', this.checked)" />
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
-
-    <!-- Topic -->
-    <div class="weekly-field">
-      <label class="field-label">Weekly topic</label>
-      <input type="text" id="weeklyTopic" placeholder="e.g. AI agents in enterprise, Founder mindset, Future of remote work..." />
-    </div>
-
-    <!-- Settings row -->
-    <div class="weekly-row" style="margin-bottom:16px;">
-      <div class="bulk-field">
-        <label>Category</label>
-        <select id="weeklyCategory">
-          <option value="AI & Technology">AI &amp; Technology</option>
-          <option value="Business & Entrepreneurship">Business</option>
-          <option value="Career & Growth">Career &amp; Growth</option>
-          <option value="General">General</option>
-        </select>
-      </div>
-      <div class="bulk-field">
-        <label>Tone</label>
-        <select id="weeklyTone">
-          <option value="Conversational & engaging">Conversational</option>
-          <option value="Thought leadership — data-driven, authoritative">Thought Leader</option>
-          <option value="Storytelling — personal experience, lessons learned">Storytelling</option>
-          <option value="Punchy & bold — contrarian takes, provocative">Bold &amp; Punchy</option>
-        </select>
-      </div>
-      <div class="bulk-field">
-        <label>Post time (daily)</label>
-        <select id="weeklyTime">
-          <option value="08:00">8:00 AM</option>
-          <option value="09:00">9:00 AM</option>
-          <option value="10:00" selected>10:00 AM</option>
-          <option value="12:00">12:00 PM</option>
-          <option value="14:00">2:00 PM</option>
-          <option value="17:00">5:00 PM</option>
-          <option value="19:00">7:00 PM</option>
-        </select>
-      </div>
-      <div style="display:flex;align-items:flex-end;">
-        <button class="btn-weekly-save" onclick="saveWeeklySettings()">Save Settings</button>
-      </div>
-    </div>
-
-    <div class="weekly-last" id="weeklyLastRun"></div>
-
-    <!-- 7 angles preview -->
-    <div style="margin: 16px 0; padding: 14px 16px; background: white; border-radius: 12px; border: 1px solid #a7f3d0; font-size: 12px; color: var(--muted); line-height: 2;">
-      <strong style="color:var(--text); display:block; margin-bottom:6px;">Posts generated each week:</strong>
-      Mon <span class="angle-tag">Data & Stats</span> &nbsp;·&nbsp;
-      Tue <span class="angle-tag">Contrarian Take</span> &nbsp;·&nbsp;
-      Wed <span class="angle-tag">Practical How-To</span> &nbsp;·&nbsp;
-      Thu <span class="angle-tag">Personal Story</span> &nbsp;·&nbsp;
-      Fri <span class="angle-tag">Future Prediction</span> &nbsp;·&nbsp;
-      Sat <span class="angle-tag">Industry Trend</span> &nbsp;·&nbsp;
-      Sun <span class="angle-tag">Mindset & Reflection</span>
-    </div>
-
-    <!-- Start date for manual generation -->
-    <div class="weekly-field">
-      <label class="field-label">Start date (for "Generate Now")</label>
-      <input type="date" id="weeklyStartDate" style="width:100%;padding:12px 16px;border-radius:12px;border:2px solid var(--border);font-size:14px;font-family:inherit;outline:none;" />
-    </div>
-
-    <!-- Generate Now button -->
-    <button class="btn-weekly-now" id="weeklyNowBtn" onclick="generateWeekNow()">
-      <span id="weeklyNowIcon">✨</span>
-      <span id="weeklyNowText">Generate This Week's 7 Posts Now</span>
-    </button>
-
-    <div class="weekly-progress" id="weeklyProgress">
-      <div class="weekly-progress-bar"><div class="weekly-progress-fill" id="weeklyFill"></div></div>
-      <div class="weekly-status" id="weeklyStatus">Generating post 1 of 7...</div>
-    </div>
-    <div class="weekly-results" id="weeklyResults"></div>
-  </div>
-
-  <!-- ═══════════════ BULK SCHEDULE ═══════════════ -->
-  <div class="card bulk-section" id="bulkCard">
-    <div class="bulk-title">Bulk Schedule — Plan Your Week</div>
-    <div class="bulk-desc">Enter one topic per line. AI will generate a unique post for each and schedule them across your chosen timeframe.</div>
-
-    <textarea class="bulk-textarea" id="bulkTopics" placeholder="AI replacing junior developers&#10;Why bootstrapping beats VC in 2026&#10;The hidden cost of technical debt&#10;Remote work is not dead&#10;How to negotiate your first raise&#10;Lessons from failing at my first startup&#10;The underrated skill in tech: writing"></textarea>
-
-    <div class="bulk-settings">
-      <div class="bulk-field">
-        <label>Start date</label>
-        <input type="date" id="bulkStartDate" style="width:100%;padding:10px 14px;border-radius:10px;border:2px solid var(--border);font-size:14px;font-family:inherit;outline:none;" />
-      </div>
-      <div class="bulk-field">
-        <label>Posting frequency</label>
-        <select id="bulkFrequency">
-          <option value="1">Every day</option>
-          <option value="2">Every 2 days</option>
-          <option value="3">Every 3 days</option>
-          <option value="7">Once a week</option>
-        </select>
-      </div>
-      <div class="bulk-field">
-        <label>Time of day</label>
-        <select id="bulkTime">
-          <option value="09:00">9:00 AM</option>
-          <option value="10:00" selected>10:00 AM</option>
-          <option value="12:00">12:00 PM</option>
-          <option value="14:00">2:00 PM</option>
-          <option value="17:00">5:00 PM</option>
-          <option value="19:00">7:00 PM</option>
-        </select>
-      </div>
-    </div>
-
-    <button class="btn-bulk" id="bulkBtn" onclick="bulkGenerate()">
-      <span id="bulkIcon">&#128640;</span>
-      <span id="bulkText">Generate & Schedule All Posts</span>
-    </button>
-
-    <div class="bulk-progress" id="bulkProgress">
-      <div class="bulk-progress-bar"><div class="bulk-progress-fill" id="bulkFill"></div></div>
-      <div class="bulk-status" id="bulkStatus">Generating...</div>
-    </div>
-    <div class="bulk-results" id="bulkResults"></div>
-  </div>
-
   <!-- ═══════════════ CONTENT CALENDAR ═══════════════ -->
   <div class="card" id="calCard">
     <div class="cal-header">
-      <div class="cal-title">Content Calendar <span class="cal-count" id="calCount">0</span></div>
-      <button class="btn-tool" onclick="loadCalendar()" id="calRefresh">Refresh</button>
+      <div class="cal-title">My Content Calendar <span class="cal-count" id="calCount" style="display:none">0</span></div>
+      <button class="btn-tool" onclick="loadCalendar()" id="calRefresh" style="display:none">Refresh</button>
     </div>
 
-    <!-- Approval toggle -->
-    <div class="toggle-row">
-      <div>
-        <div class="toggle-label">Require approval before auto-publish</div>
-        <div class="toggle-sub">When ON, posts must be approved before they go live. When OFF, scheduled posts publish automatically.</div>
+    <!-- Lock state (shown when not logged in) -->
+    <div class="cal-lock" id="calLock">
+      <div class="cal-lock-icon">🔒</div>
+      <div class="cal-lock-title">Your personal calendar is private</div>
+      <div class="cal-lock-sub">Connect your LinkedIn account above to view and manage your scheduled posts. Each user sees only their own content.</div>
+    </div>
+
+    <!-- Calendar content (shown only when logged in) -->
+    <div id="calContent" style="display:none;">
+      <!-- Approval toggle -->
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Require approval before auto-publish</div>
+          <div class="toggle-sub">When ON, posts must be approved before they go live. When OFF, scheduled posts publish automatically.</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="approvalToggle" checked onchange="saveApprovalSetting(this.checked)" />
+          <span class="toggle-slider"></span>
+        </label>
       </div>
-      <label class="toggle">
-        <input type="checkbox" id="approvalToggle" checked onchange="saveApprovalSetting(this.checked)" />
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
 
-    <!-- Token expiry warning -->
-    <div class="token-warn" id="tokenWarn">
-      Your LinkedIn token expires on <strong id="tokenExpDate">-</strong>. You'll need to re-login before then for scheduled posts to auto-publish.
-    </div>
+      <!-- Token expiry warning -->
+      <div class="token-warn" id="tokenWarn">
+        Your LinkedIn token expires on <strong id="tokenExpDate">-</strong>. Re-login before then so scheduled posts can auto-publish.
+      </div>
 
-    <!-- Filter tabs -->
-    <div class="filter-tabs" id="filterTabs">
-      <button class="filter-tab on" onclick="setFilter('all',this)">All</button>
-      <button class="filter-tab" onclick="setFilter('draft',this)">Drafts</button>
-      <button class="filter-tab" onclick="setFilter('approved',this)">Approved</button>
-      <button class="filter-tab" onclick="setFilter('published',this)">Published</button>
-      <button class="filter-tab" onclick="setFilter('failed',this)">Failed</button>
-    </div>
+      <!-- Filter tabs -->
+      <div class="filter-tabs">
+        <button class="filter-tab on" onclick="setFilter('all',this)">All</button>
+        <button class="filter-tab" onclick="setFilter('draft',this)">Drafts</button>
+        <button class="filter-tab" onclick="setFilter('approved',this)">Approved</button>
+        <button class="filter-tab" onclick="setFilter('published',this)">Published</button>
+        <button class="filter-tab" onclick="setFilter('failed',this)">Failed</button>
+      </div>
 
-    <!-- Scheduled post list -->
-    <div class="sched-list" id="schedList">
-      <div class="empty-state"><div class="empty-icon">&#128197;</div>No scheduled posts yet.<br>Generate a post above and click <strong>Schedule</strong> to plan your content.</div>
+      <!-- Post list -->
+      <div class="sched-list" id="schedList">
+        <div class="empty-state"><div class="empty-icon">&#128197;</div>No posts scheduled yet.<br>Use <strong>Single Post</strong> or <strong>Plan My Week</strong> above to get started.</div>
+      </div>
     </div>
   </div>
 
@@ -665,6 +668,7 @@
 let currentCat  = 'AI & Technology';
 let currentTone = 'Conversational & engaging';
 let currentTopic = '';
+let currentMode = 'single'; // 'single' | 'week'
 let versions = [];
 let activeVer = 0;
 let editMode = false;
@@ -676,6 +680,24 @@ let liExpiresIn = 0;
 let scheduledPosts = [];
 let currentFilter = 'all';
 let approvalRequired = true;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function getPersonId() {
+  // "urn:li:person:abc123" → "abc123"
+  if (!liPersonUrn) return null;
+  const parts = liPersonUrn.split(':');
+  return parts[parts.length - 1] || null;
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('tabSingle').classList.toggle('on', mode === 'single');
+  document.getElementById('tabWeek').classList.toggle('on', mode === 'week');
+  document.getElementById('singleActions').style.display = mode === 'single' ? 'block' : 'none';
+  document.getElementById('weekActions').style.display = mode === 'week' ? 'block' : 'none';
+  // If switching to week plan and logged in, load weekly settings
+  if (mode === 'week') { const uid = getPersonId(); if (uid) loadWeeklySettings(uid); }
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CHIPS
@@ -926,16 +948,26 @@ function showLiConnected() {
   document.getElementById('liAvatar').textContent = liUserName.charAt(0).toUpperCase();
   document.getElementById('publishTxt').textContent = 'Publish Now';
   setLiStatus('', true);
+  // Unlock calendar and load this user's posts
+  showCalendarForUser();
+  loadCalendar();
+  loadSettings();
+  checkTokenStatus();
+  // If week plan tab open, load weekly settings
+  if (currentMode === 'week') loadWeeklySettings(getPersonId());
 }
 
 function logoutLinkedIn() {
   liToken = ''; liPersonUrn = ''; liUserName = '';
+  scheduledPosts = [];
   document.getElementById('liLoginView').style.display = 'block';
   document.getElementById('liConnectedView').style.display = 'none';
   document.getElementById('liSection').classList.remove('connected');
   document.getElementById('publishTxt').textContent = 'Post to LinkedIn';
   document.getElementById('tokenWarn').style.display = 'none';
   setLiStatus('', true);
+  // Lock the calendar and clear it
+  showCalendarForUser();
 }
 
 function setLiStatus(msg, ok) {
@@ -1010,6 +1042,9 @@ function toLocalISO(d) {
 }
 
 async function scheduleCurrentPost() {
+  const userId = getPersonId();
+  if (!userId) { alert('Please connect your LinkedIn account first to schedule posts.'); return; }
+
   const text = getActiveText();
   const dateVal = document.getElementById('scheduleDate').value;
   if (!dateVal) { alert('Please pick a date and time.'); return; }
@@ -1024,7 +1059,7 @@ async function scheduleCurrentPost() {
     const res = await fetch('/.netlify/functions/schedule-posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic: currentTopic, category: currentCat, tone: currentTone, text, status, scheduledDate })
+      body: JSON.stringify({ userId, topic: currentTopic, category: currentCat, tone: currentTone, text, status, scheduledDate })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to save');
@@ -1043,9 +1078,20 @@ async function scheduleCurrentPost() {
 // ══════════════════════════════════════════════════════════════════════════════
 // CONTENT CALENDAR
 // ══════════════════════════════════════════════════════════════════════════════
+function showCalendarForUser() {
+  const loggedIn = !!getPersonId();
+  document.getElementById('calLock').style.display = loggedIn ? 'none' : 'block';
+  document.getElementById('calContent').style.display = loggedIn ? 'block' : 'none';
+  document.getElementById('calCount').style.display = loggedIn ? 'inline-flex' : 'none';
+  document.getElementById('calRefresh').style.display = loggedIn ? 'block' : 'none';
+}
+
 async function loadCalendar() {
+  const userId = getPersonId();
+  showCalendarForUser();
+  if (!userId) return;
   try {
-    const res = await fetch('/.netlify/functions/schedule-posts');
+    const res = await fetch('/.netlify/functions/schedule-posts?userId=' + encodeURIComponent(userId));
     const data = await res.json();
     scheduledPosts = data.posts || [];
     renderCalendar();
@@ -1055,8 +1101,10 @@ async function loadCalendar() {
 }
 
 async function loadSettings() {
+  const userId = getPersonId();
+  if (!userId) return;
   try {
-    const res = await fetch('/.netlify/functions/schedule-settings');
+    const res = await fetch('/.netlify/functions/schedule-settings?userId=' + encodeURIComponent(userId));
     const data = await res.json();
     approvalRequired = data.approvalRequired !== false;
     document.getElementById('approvalToggle').checked = approvalRequired;
@@ -1064,12 +1112,14 @@ async function loadSettings() {
 }
 
 async function saveApprovalSetting(val) {
+  const userId = getPersonId();
+  if (!userId) return;
   approvalRequired = val;
   try {
     await fetch('/.netlify/functions/schedule-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ approvalRequired: val })
+      body: JSON.stringify({ userId, approvalRequired: val })
     });
   } catch {}
 }
@@ -1153,11 +1203,13 @@ async function retryPost(id) {
 }
 
 async function updatePostStatus(id, status) {
+  const userId = getPersonId();
+  if (!userId) return;
   try {
     const res = await fetch('/.netlify/functions/schedule-posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, status })
+      body: JSON.stringify({ userId, id, status })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed');
@@ -1169,9 +1221,14 @@ async function updatePostStatus(id, status) {
 }
 
 async function deletePost(id) {
+  const userId = getPersonId();
+  if (!userId) return;
   if (!confirm('Delete this scheduled post?')) return;
   try {
-    const res = await fetch('/.netlify/functions/schedule-posts?id=' + encodeURIComponent(id), { method: 'DELETE' });
+    const res = await fetch(
+      '/.netlify/functions/schedule-posts?id=' + encodeURIComponent(id) + '&userId=' + encodeURIComponent(userId),
+      { method: 'DELETE' }
+    );
     if (!res.ok) throw new Error('Failed to delete');
     scheduledPosts = scheduledPosts.filter(p => p.id !== id);
     renderCalendar();
@@ -1197,247 +1254,148 @@ function editScheduledPost(id) {
 // CHECK TOKEN STATUS
 // ══════════════════════════════════════════════════════════════════════════════
 async function checkTokenStatus() {
+  const userId = getPersonId();
+  if (!userId) return;
   try {
-    const res = await fetch('/.netlify/functions/schedule-token');
+    const res = await fetch('/.netlify/functions/schedule-token?userId=' + encodeURIComponent(userId));
     const data = await res.json();
     if (data.hasToken && data.expiresAt) {
       document.getElementById('tokenWarn').style.display = 'block';
       document.getElementById('tokenExpDate').textContent = new Date(data.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     }
     if (data.expired) {
-      document.getElementById('tokenWarn').style.display = 'block';
-      document.getElementById('tokenWarn').style.background = '#fef2f2';
-      document.getElementById('tokenWarn').style.borderColor = '#fecaca';
-      document.getElementById('tokenWarn').style.color = '#991b1b';
-      document.getElementById('tokenWarn').innerHTML = '<strong>LinkedIn token expired!</strong> Please re-login with LinkedIn above so scheduled posts can auto-publish.';
+      const warn = document.getElementById('tokenWarn');
+      warn.style.display = 'block';
+      warn.style.background = '#fef2f2';
+      warn.style.borderColor = '#fecaca';
+      warn.style.color = '#991b1b';
+      warn.innerHTML = '<strong>LinkedIn token expired!</strong> Please re-login above so scheduled posts can auto-publish.';
     }
   } catch {}
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// BULK GENERATE & SCHEDULE
+// WEEK PLAN (inside Create card)
 // ══════════════════════════════════════════════════════════════════════════════
-function initBulkDefaults() {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
+const WEEK_ANGLES = [
+  { day: 'Mon', label: 'Data & Statistics' },
+  { day: 'Tue', label: 'Contrarian Take' },
+  { day: 'Wed', label: 'Practical How-To' },
+  { day: 'Thu', label: 'Personal Story' },
+  { day: 'Fri', label: 'Future Prediction' },
+  { day: 'Sat', label: 'Industry Trend' },
+  { day: 'Sun', label: 'Mindset & Reflection' },
+];
+
+function initWeekDefaults() {
+  const today = new Date();
+  const daysUntilMon = (1 - today.getDay() + 7) % 7 || 7;
+  const nextMon = new Date(today);
+  nextMon.setDate(today.getDate() + daysUntilMon);
   const pad = n => String(n).padStart(2, '0');
-  document.getElementById('bulkStartDate').value =
-    tomorrow.getFullYear() + '-' + pad(tomorrow.getMonth()+1) + '-' + pad(tomorrow.getDate());
+  document.getElementById('weekStartDate').value =
+    nextMon.getFullYear() + '-' + pad(nextMon.getMonth()+1) + '-' + pad(nextMon.getDate());
 }
 
-async function bulkGenerate() {
-  const raw = document.getElementById('bulkTopics').value.trim();
-  if (!raw) { alert('Please enter at least one topic.'); return; }
-
-  const topics = raw.split('\n').map(t => t.trim()).filter(Boolean);
-  if (!topics.length) { alert('Please enter at least one topic.'); return; }
-  if (topics.length > 14) { alert('Maximum 14 topics per batch.'); return; }
-
-  const startDate = document.getElementById('bulkStartDate').value;
-  if (!startDate) { alert('Please pick a start date.'); return; }
-
-  const freq = parseInt(document.getElementById('bulkFrequency').value, 10);
-  const timeVal = document.getElementById('bulkTime').value;
-
-  const btn = document.getElementById('bulkBtn');
-  btn.disabled = true;
-  document.getElementById('bulkIcon').innerHTML = '<div class="spinner"></div>';
-  document.getElementById('bulkText').textContent = 'Generating ' + topics.length + ' posts...';
-  const progressEl = document.getElementById('bulkProgress');
-  progressEl.style.display = 'block';
-  const fillEl = document.getElementById('bulkFill');
-  const statusEl = document.getElementById('bulkStatus');
-  const resultsEl = document.getElementById('bulkResults');
-  resultsEl.innerHTML = '';
-  fillEl.style.width = '2%';
-
-  let scheduled = 0;
-  let failed = 0;
-
-  // Generate and schedule one topic at a time (avoids server timeout)
-  for (let i = 0; i < topics.length; i++) {
-    const topic = topics[i];
-    const pct = Math.round(((i + 0.5) / topics.length) * 100);
-    fillEl.style.width = pct + '%';
-    statusEl.textContent = 'Generating post ' + (i+1) + ' of ' + topics.length + ': "' + topic.slice(0, 40) + '"...';
-
-    try {
-      // 1. Generate the post via existing single-post endpoint
-      const genRes = await fetch('/.netlify/functions/gemini-generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, category: currentCat, tone: currentTone })
-      });
-      const genData = await genRes.json();
-      if (!genRes.ok) throw new Error(genData.error || 'Generation failed');
-
-      // 2. Calculate schedule date
-      const schedDate = new Date(startDate + 'T' + timeVal + ':00');
-      schedDate.setDate(schedDate.getDate() + (i * freq));
-
-      // 3. Save to schedule
-      const saveRes = await fetch('/.netlify/functions/schedule-posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic: topic,
-          category: currentCat,
-          tone: currentTone,
-          text: genData.post,
-          status: approvalRequired ? 'draft' : 'approved',
-          scheduledDate: schedDate.toISOString()
-        })
-      });
-      const saveData = await saveRes.json();
-      if (!saveRes.ok) throw new Error(saveData.error || 'Save failed');
-      scheduledPosts = saveData.posts || scheduledPosts;
-      scheduled++;
-      const dateStr = schedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-ok">&#9989; ' + topic + ' &mdash; ' + dateStr + (approvalRequired ? ' (draft)' : ' (approved)') + '</div>';
-    } catch (e) {
-      failed++;
-      resultsEl.innerHTML += '<div class="bulk-result-item bulk-result-err">&#10060; ' + topic + ' &mdash; ' + e.message + '</div>';
-    }
-
-    fillEl.style.width = Math.round(((i + 1) / topics.length) * 100) + '%';
-  }
-
-  statusEl.textContent = 'Done! ' + scheduled + ' posts scheduled' + (failed ? ', ' + failed + ' failed' : '') + '.';
-  fillEl.style.width = '100%';
-  renderCalendar();
-
-  btn.disabled = false;
-  document.getElementById('bulkIcon').textContent = '\u{1F680}';
-  document.getElementById('bulkText').textContent = 'Generate & Schedule All Posts';
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// WEEKLY AUTO-POST
-// ══════════════════════════════════════════════════════════════════════════════
-async function loadWeeklySettings() {
+async function loadWeeklySettings(userId) {
+  if (!userId) return;
   try {
-    const res = await fetch('/.netlify/functions/weekly-settings');
+    const res = await fetch('/.netlify/functions/weekly-settings?userId=' + encodeURIComponent(userId));
     const data = await res.json();
-    if (data.topic)    document.getElementById('weeklyTopic').value = data.topic;
-    if (data.category) document.getElementById('weeklyCategory').value = data.category;
-    if (data.tone)     document.getElementById('weeklyTone').value = data.tone;
-    if (data.postTime) document.getElementById('weeklyTime').value = data.postTime;
-    document.getElementById('weeklyEnabled').checked = !!data.enabled;
+    // Pre-fill topic if saved and topic input is empty
+    if (data.topic && !document.getElementById('topicInput').value)
+      document.getElementById('topicInput').value = data.topic;
+    if (data.postTime) document.getElementById('weekPostTime').value = data.postTime;
+    document.getElementById('weekAutoEnabled').checked = !!data.enabled;
+    const lastEl = document.getElementById('weekLastRun');
     if (data.lastGeneratedWeek) {
       const d = new Date(data.lastGeneratedWeek);
-      document.getElementById('weeklyLastRun').textContent =
-        'Last auto-generated: ' + d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+      lastEl.textContent = 'Last auto-generated: ' + d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+    } else {
+      lastEl.textContent = '';
     }
   } catch {}
 }
 
-async function saveWeeklySettings() {
-  const topic   = document.getElementById('weeklyTopic').value.trim();
-  const category = document.getElementById('weeklyCategory').value;
-  const tone    = document.getElementById('weeklyTone').value;
-  const postTime = document.getElementById('weeklyTime').value;
-  const enabled = document.getElementById('weeklyEnabled').checked;
-
-  if (!topic) { alert('Please enter a weekly topic before saving.'); return; }
-
-  try {
-    const res = await fetch('/.netlify/functions/weekly-settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, category, tone, postTime, enabled })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Save failed');
-    const btn = document.querySelector('.btn-weekly-save');
-    btn.textContent = 'Saved ✓';
-    setTimeout(() => btn.textContent = 'Save Settings', 2500);
-  } catch (e) {
-    alert('Failed to save: ' + e.message);
-  }
-}
-
-async function saveWeeklySetting(key, value) {
+async function saveWeeklySettingsFromCard() {
+  const userId = getPersonId();
+  if (!userId) { alert('Please connect LinkedIn first.'); return; }
+  const topic = document.getElementById('topicInput').value.trim();
+  const postTime = document.getElementById('weekPostTime').value;
+  const enabled = document.getElementById('weekAutoEnabled').checked;
+  if (!topic) { alert('Please enter a topic before saving.'); return; }
   try {
     await fetch('/.netlify/functions/weekly-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [key]: value })
+      body: JSON.stringify({ userId, topic, category: currentCat, tone: currentTone, postTime, enabled })
+    });
+    const btn = document.querySelector('.btn-week-save');
+    btn.textContent = 'Saved ✓';
+    setTimeout(() => btn.textContent = 'Save', 2000);
+  } catch (e) { alert('Save failed: ' + e.message); }
+}
+
+async function saveWeeklySetting(key, value) {
+  const userId = getPersonId();
+  if (!userId) return;
+  try {
+    await fetch('/.netlify/functions/weekly-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, [key]: value })
     });
   } catch {}
 }
 
-function initWeeklyDefaults() {
-  const today = new Date();
-  // Start on next Monday
-  const daysUntilMonday = (1 - today.getDay() + 7) % 7 || 7;
-  const nextMonday = new Date(today);
-  nextMonday.setDate(today.getDate() + daysUntilMonday);
-  const pad = n => String(n).padStart(2, '0');
-  document.getElementById('weeklyStartDate').value =
-    nextMonday.getFullYear() + '-' + pad(nextMonday.getMonth()+1) + '-' + pad(nextMonday.getDate());
-}
-
-const WEEKLY_ANGLES = [
-  { day: 'Mon', angle: 'Data & Statistics' },
-  { day: 'Tue', angle: 'Contrarian Take' },
-  { day: 'Wed', angle: 'Practical How-To' },
-  { day: 'Thu', angle: 'Personal Story' },
-  { day: 'Fri', angle: 'Future Prediction' },
-  { day: 'Sat', angle: 'Industry Trend' },
-  { day: 'Sun', angle: 'Mindset & Reflection' },
-];
-
 async function generateWeekNow() {
-  const topic = document.getElementById('weeklyTopic').value.trim();
-  if (!topic) { alert('Please enter a weekly topic first.'); document.getElementById('weeklyTopic').focus(); return; }
+  const userId = getPersonId();
+  if (!userId) { alert('Please connect your LinkedIn account first.'); return; }
 
-  const startDate = document.getElementById('weeklyStartDate').value;
+  const topic = document.getElementById('topicInput').value.trim();
+  if (!topic) { alert('Please enter a topic.'); document.getElementById('topicInput').focus(); return; }
+
+  const startDate = document.getElementById('weekStartDate').value;
   if (!startDate) { alert('Please set a start date.'); return; }
 
-  const timeVal = document.getElementById('weeklyTime').value;
-  const category = document.getElementById('weeklyCategory').value;
-  const tone = document.getElementById('weeklyTone').value;
+  const timeVal = document.getElementById('weekPostTime').value;
 
-  const btn = document.getElementById('weeklyNowBtn');
+  const btn = document.getElementById('weekNowBtn');
   btn.disabled = true;
-  document.getElementById('weeklyNowIcon').innerHTML = '<div class="spinner"></div>';
-  document.getElementById('weeklyNowText').textContent = 'Generating 7 posts... (this takes ~1 min)';
+  document.getElementById('weekNowIcon').innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:3px;"></div>';
+  document.getElementById('weekNowText').textContent = 'Generating 7 posts… (~1 min)';
 
-  const progressEl = document.getElementById('weeklyProgress');
+  const progressEl = document.getElementById('weekProgress');
   progressEl.style.display = 'block';
-  const fillEl = document.getElementById('weeklyFill');
-  const statusEl = document.getElementById('weeklyStatus');
-  const resultsEl = document.getElementById('weeklyResults');
+  const fillEl = document.getElementById('weekFill');
+  const statusEl = document.getElementById('weekStatus');
+  const resultsEl = document.getElementById('weekResultsList');
   resultsEl.innerHTML = '';
   fillEl.style.width = '2%';
-  statusEl.textContent = 'Calling AI to generate 7 unique posts...';
+  statusEl.textContent = 'AI is writing 7 unique posts — one per angle…';
 
   try {
-    // Single call to gemini-weekly — server handles all 7 posts with rate-limit delays
     const res = await fetch('/.netlify/functions/gemini-weekly', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, category, tone })
+      body: JSON.stringify({ topic, category: currentCat, tone: currentTone })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Generation failed');
 
     const results = data.results || [];
     fillEl.style.width = '60%';
-    statusEl.textContent = 'Saving ' + results.filter(r => r.post).length + ' posts to calendar...';
+    statusEl.textContent = 'Saving ' + results.filter(r => r.post).length + ' posts to your calendar…';
 
-    // Schedule each post
-    let scheduled = 0;
-    let failed = 0;
+    let scheduled = 0, failed = 0;
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
-      const pct = 60 + Math.round(((i + 1) / results.length) * 40);
-      fillEl.style.width = pct + '%';
+      fillEl.style.width = (60 + Math.round(((i + 1) / results.length) * 40)) + '%';
 
       if (r.error || !r.post) {
         failed++;
-        resultsEl.innerHTML += '<div class="weekly-result-item weekly-result-err">❌ ' + (r.day || 'Day ' + (i+1)) + ' — ' + (r.error || 'No post generated') + '</div>';
+        resultsEl.innerHTML += '<div class="week-result-err">❌ <strong>' + (r.day || 'Day ' + (i+1)) + '</strong> — ' + (r.error || 'No post') + '</div>';
         continue;
       }
 
@@ -1449,9 +1407,10 @@ async function generateWeekNow() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            topic: topic + ' (' + (WEEKLY_ANGLES[i] ? WEEKLY_ANGLES[i].angle : r.angle) + ')',
-            category,
-            tone,
+            userId,
+            topic: topic + ' — ' + (WEEK_ANGLES[i] ? WEEK_ANGLES[i].label : r.angle),
+            category: currentCat,
+            tone: currentTone,
             text: r.post,
             status: approvalRequired ? 'draft' : 'approved',
             scheduledDate: schedDate.toISOString()
@@ -1461,34 +1420,35 @@ async function generateWeekNow() {
         if (!saveRes.ok) throw new Error(saveData.error || 'Save failed');
         scheduledPosts = saveData.posts || scheduledPosts;
         scheduled++;
+        const angleLabel = WEEK_ANGLES[i] ? WEEK_ANGLES[i].label : r.angle;
         const dateStr = schedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        const angle = WEEKLY_ANGLES[i] ? WEEKLY_ANGLES[i].angle : r.angle;
-        resultsEl.innerHTML += '<div class="weekly-result-item weekly-result-ok">✅ ' + (r.day || dateStr) + ' — <span class="angle-tag">' + angle + '</span> — ' + dateStr + (approvalRequired ? ' (draft)' : ' (approved)') + '</div>';
+        resultsEl.innerHTML += '<div class="week-result-ok">✅ <strong>' + (r.day || dateStr) + '</strong> · ' + angleLabel + ' · ' + dateStr + '</div>';
       } catch (e) {
         failed++;
-        resultsEl.innerHTML += '<div class="weekly-result-item weekly-result-err">❌ ' + r.day + ' — Could not save: ' + e.message + '</div>';
+        resultsEl.innerHTML += '<div class="week-result-err">❌ <strong>' + r.day + '</strong> — ' + e.message + '</div>';
       }
     }
 
     fillEl.style.width = '100%';
-    statusEl.textContent = 'Done! ' + scheduled + ' posts scheduled' + (failed ? ', ' + failed + ' failed' : '') + '.';
+    statusEl.textContent = '✅ Done — ' + scheduled + ' posts queued' + (failed ? ', ' + failed + ' failed' : '') + '.';
     renderCalendar();
+    document.getElementById('calCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Also save settings so the weekly cron uses them
+    // Persist topic + settings for weekly cron
     await fetch('/.netlify/functions/weekly-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, category, tone, postTime: timeVal })
+      body: JSON.stringify({ userId, topic, category: currentCat, tone: currentTone, postTime: timeVal })
     });
 
   } catch (e) {
-    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.textContent = '❌ Error: ' + e.message;
     fillEl.style.width = '0%';
   }
 
   btn.disabled = false;
-  document.getElementById('weeklyNowIcon').textContent = '✨';
-  document.getElementById('weeklyNowText').textContent = 'Generate This Week\'s 7 Posts Now';
+  document.getElementById('weekNowIcon').textContent = '🚀';
+  document.getElementById('weekNowText').textContent = 'Generate This Week\'s 7 Posts';
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1523,12 +1483,8 @@ function checkOAuthReturn() {
 // INIT
 // ══════════════════════════════════════════════════════════════════════════════
 checkOAuthReturn();
-loadCalendar();
-loadSettings();
-checkTokenStatus();
-initBulkDefaults();
-initWeeklyDefaults();
-loadWeeklySettings();
+showCalendarForUser(); // show lock state immediately (no user yet)
+initWeekDefaults();    // set next Monday as default start date
 </script>
 </body>
 </html>

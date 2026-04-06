@@ -1,4 +1,5 @@
-// CRUD for scheduled posts — stored in Netlify Blobs
+// CRUD for scheduled posts — stored per-user in Netlify Blobs.
+// Key: posts-{userId}  (userId = personId from urn:li:person:abc123)
 const { getStore } = require('@netlify/blobs');
 
 const CORS = {
@@ -12,19 +13,19 @@ function json(statusCode, data) {
 }
 
 function getPostStore(event) {
-  // connectLambda approach — pass the event context so Blobs can auth
   try {
     const { connectLambda } = require('@netlify/blobs');
     if (connectLambda) connectLambda(event);
   } catch (e) {
-    console.log('connectLambda not available, proceeding without it:', e.message);
+    console.log('connectLambda not available:', e.message);
   }
   return getStore({ name: 'app-data', consistency: 'eventual' });
 }
 
-async function getPosts(store) {
+async function getPosts(store, userId) {
+  const key = userId ? `posts-${userId}` : 'posts';
   try {
-    const data = await store.get('posts', { type: 'json' });
+    const data = await store.get(key, { type: 'json' });
     return data || [];
   } catch (e) {
     console.log('getPosts error (likely first run):', e.message);
@@ -32,30 +33,44 @@ async function getPosts(store) {
   }
 }
 
+async function savePosts(store, userId, posts) {
+  const key = userId ? `posts-${userId}` : 'posts';
+  await store.setJSON(key, posts);
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
 
   try {
     const store = getPostStore(event);
+    const qs = event.queryStringParameters || {};
 
     // ── LIST ──
     if (event.httpMethod === 'GET') {
-      return json(200, { posts: await getPosts(store) });
+      const userId = qs.userId || null;
+      if (!userId) return json(401, { error: 'userId required' });
+      return json(200, { posts: await getPosts(store, userId) });
     }
 
     // ── CREATE / UPDATE ──
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const posts = await getPosts(store);
+      const userId = body.userId || null;
+      if (!userId) return json(401, { error: 'userId required' });
+
+      const posts = await getPosts(store, userId);
       const now = new Date().toISOString();
 
       if (body.id) {
+        // Update existing post
         const idx = posts.findIndex(p => p.id === body.id);
         if (idx < 0) return json(404, { error: 'Post not found' });
-        posts[idx] = { ...posts[idx], ...body, updatedAt: now };
+        posts[idx] = { ...posts[idx], ...body, userId, updatedAt: now };
       } else {
+        // Create new post
         posts.push({
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+          userId,
           topic: body.topic || '',
           category: body.category || '',
           tone: body.tone || '',
@@ -67,17 +82,17 @@ exports.handler = async (event) => {
         });
       }
 
-      await store.setJSON('posts', posts);
+      await savePosts(store, userId, posts);
       return json(200, { ok: true, posts });
     }
 
     // ── DELETE ──
     if (event.httpMethod === 'DELETE') {
-      const { id } = event.queryStringParameters || {};
-      if (!id) return json(400, { error: 'id required' });
-      let posts = await getPosts(store);
+      const { id, userId } = qs;
+      if (!id || !userId) return json(400, { error: 'id and userId required' });
+      let posts = await getPosts(store, userId);
       posts = posts.filter(p => p.id !== id);
-      await store.setJSON('posts', posts);
+      await savePosts(store, userId, posts);
       return json(200, { ok: true });
     }
 

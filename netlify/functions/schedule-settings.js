@@ -1,4 +1,5 @@
-// Stores app settings (like approval toggle) in Netlify Blobs
+// Stores per-user app settings (like approval toggle) in Netlify Blobs
+// Key: settings-{userId}
 const { getStore } = require('@netlify/blobs');
 
 const CORS = {
@@ -28,10 +29,13 @@ exports.handler = async (event) => {
 
   try {
     const store = getBlobStore(event);
+    const qs = event.queryStringParameters || {};
 
     if (event.httpMethod === 'GET') {
+      const userId = qs.userId || null;
+      if (!userId) return json(200, DEFAULTS);
       try {
-        const data = await store.get('settings', { type: 'json' });
+        const data = await store.get(`settings-${userId}`, { type: 'json' });
         return json(200, data || DEFAULTS);
       } catch {
         return json(200, DEFAULTS);
@@ -40,8 +44,10 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}');
+      const userId = body.userId || null;
+      if (!userId) return json(400, { error: 'userId required' });
       const settings = { approvalRequired: body.approvalRequired !== false };
-      await store.setJSON('settings', settings);
+      await store.setJSON(`settings-${userId}`, settings);
       return json(200, { ok: true, ...settings });
     }
 

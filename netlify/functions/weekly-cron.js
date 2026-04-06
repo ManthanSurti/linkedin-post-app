@@ -1,6 +1,5 @@
 // Runs every Monday at 6 AM UTC.
-// If weekly auto-post is enabled, generates 7 posts from the saved topic
-// and schedules them Mon–Sun at the configured posting time.
+// For every user who has weekly auto-post enabled, generates 7 posts and queues them Mon–Sun.
 const { schedule } = require('@netlify/functions');
 const { getStore } = require('@netlify/blobs');
 
@@ -17,7 +16,7 @@ const ANGLES = [
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function buildPrompt(topic, category, tone, angleInfo) {
-  return `You are an expert LinkedIn content strategist writing for Manthan Surti, a professional in tech and business.
+  return `You are an expert LinkedIn content strategist writing for a professional in tech and business.
 
 Write a high-quality LinkedIn post about: "${topic}"
 Category: ${category}
@@ -62,94 +61,97 @@ const handler = async () => {
   console.log('[weekly-cron] Starting weekly post generation');
 
   const store = getStore({ name: 'app-data', consistency: 'eventual' });
-
-  // 1. Load weekly settings
-  let settings;
-  try {
-    settings = await store.get('weekly-settings', { type: 'json' });
-  } catch (e) {
-    console.log('[weekly-cron] No weekly settings found:', e.message);
-    return { statusCode: 200 };
-  }
-
-  if (!settings || !settings.enabled || !settings.topic) {
-    console.log('[weekly-cron] Weekly auto-post disabled or no topic set. Skipping.');
-    return { statusCode: 200 };
-  }
-
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.log('[weekly-cron] GEMINI_API_KEY not set');
+  if (!apiKey) { console.log('[weekly-cron] GEMINI_API_KEY not set'); return { statusCode: 200 }; }
+
+  // 1. List all users with weekly settings
+  let settingKeys = [];
+  try {
+    const result = await store.list({ prefix: 'weekly-settings-' });
+    settingKeys = (result.blobs || []).map(b => b.key);
+  } catch (e) {
+    console.error('[weekly-cron] Failed to list weekly settings:', e.message);
     return { statusCode: 200 };
   }
 
-  // 2. Load app settings (approval required?)
-  let appSettings = { approvalRequired: true };
-  try {
-    const s = await store.get('settings', { type: 'json' });
-    if (s) appSettings = s;
-  } catch {}
-
-  // 3. Build the 7 scheduled dates (Mon–Sun) starting from today (Monday)
-  const now = new Date();
-  const [hh, mm] = (settings.postTime || '10:00').split(':').map(Number);
-
-  const scheduledDates = ANGLES.map((_, i) => {
-    const d = new Date(now);
-    d.setDate(now.getDate() + i); // i=0 is today (Monday), i=6 is Sunday
-    d.setHours(hh, mm, 0, 0);
-    return d;
-  });
-
-  // 4. Load existing posts
-  let posts = [];
-  try {
-    posts = await store.get('posts', { type: 'json' }) || [];
-  } catch {}
-
-  // 5. Generate & schedule each post
-  let created = 0;
-  for (let i = 0; i < ANGLES.length; i++) {
-    const angleInfo = ANGLES[i];
-    try {
-      if (i > 0) await sleep(7000); // respect Gemini 10 RPM rate limit
-
-      console.log(`[weekly-cron] Generating post ${i + 1}/7: ${angleInfo.angle}`);
-      const text = await generatePost(apiKey, settings.topic, settings.category, settings.tone, angleInfo);
-
-      const postObj = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-        topic: `${settings.topic} (${angleInfo.angle})`,
-        category: settings.category,
-        tone: settings.tone,
-        text,
-        status: appSettings.approvalRequired ? 'draft' : 'approved',
-        scheduledDate: scheduledDates[i].toISOString(),
-        weeklyAuto: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      posts.push(postObj);
-      created++;
-      console.log(`[weekly-cron] Queued: ${angleInfo.day} at ${scheduledDates[i].toISOString()}`);
-    } catch (e) {
-      console.error(`[weekly-cron] Failed for ${angleInfo.day}:`, e.message);
-    }
+  if (!settingKeys.length) {
+    console.log('[weekly-cron] No weekly settings found');
+    return { statusCode: 200 };
   }
 
-  // 6. Save updated posts
-  if (created > 0) {
-    await store.setJSON('posts', posts);
-    console.log(`[weekly-cron] Done — ${created}/7 posts queued.`);
+  const now = new Date();
 
-    // Update lastGeneratedWeek so the UI can show it
-    settings.lastGeneratedWeek = now.toISOString();
-    await store.setJSON('weekly-settings', settings);
+  for (const settingKey of settingKeys) {
+    const userId = settingKey.replace('weekly-settings-', '');
+    try {
+      await processUser(store, apiKey, userId, now);
+    } catch (e) {
+      console.error(`[weekly-cron] Error for user ${userId}:`, e.message);
+    }
   }
 
   return { statusCode: 200 };
 };
+
+async function processUser(store, apiKey, userId, now) {
+  // Load weekly settings
+  const settings = await store.get(`weekly-settings-${userId}`, { type: 'json' }).catch(() => null);
+  if (!settings || !settings.enabled || !settings.topic) {
+    console.log(`[weekly-cron] Skipping user ${userId}: disabled or no topic`);
+    return;
+  }
+
+  // Load app settings (approval required?)
+  const appSettings = await store.get(`settings-${userId}`, { type: 'json' }).catch(() => ({ approvalRequired: true }));
+
+  // Build 7 scheduled dates starting from today (Monday)
+  const [hh, mm] = (settings.postTime || '10:00').split(':').map(Number);
+  const scheduledDates = ANGLES.map((_, i) => {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    d.setHours(hh, mm, 0, 0);
+    return d;
+  });
+
+  // Load existing posts
+  let posts = await store.get(`posts-${userId}`, { type: 'json' }).catch(() => []) || [];
+
+  // Generate and queue each post
+  let created = 0;
+  for (let i = 0; i < ANGLES.length; i++) {
+    const angleInfo = ANGLES[i];
+    try {
+      if (i > 0) await sleep(7000); // respect Gemini 10 RPM limit
+
+      console.log(`[weekly-cron] User ${userId}: generating post ${i + 1}/7 (${angleInfo.angle})`);
+      const text = await generatePost(apiKey, settings.topic, settings.category || 'General', settings.tone || 'Conversational & engaging', angleInfo);
+
+      posts.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        userId,
+        topic: `${settings.topic} — ${angleInfo.angle}`,
+        category: settings.category || 'General',
+        tone: settings.tone || 'Conversational & engaging',
+        text,
+        status: (appSettings && appSettings.approvalRequired) ? 'draft' : 'approved',
+        scheduledDate: scheduledDates[i].toISOString(),
+        weeklyAuto: true,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      });
+      created++;
+    } catch (e) {
+      console.error(`[weekly-cron] User ${userId}, ${angleInfo.day} failed:`, e.message);
+    }
+  }
+
+  if (created > 0) {
+    await store.setJSON(`posts-${userId}`, posts);
+    settings.lastGeneratedWeek = now.toISOString();
+    await store.setJSON(`weekly-settings-${userId}`, settings);
+    console.log(`[weekly-cron] User ${userId}: queued ${created}/7 posts`);
+  }
+}
 
 // Every Monday at 6:00 AM UTC
 module.exports.handler = schedule('0 6 * * 1', handler);

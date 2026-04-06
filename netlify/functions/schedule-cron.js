@@ -1,39 +1,71 @@
-// Runs every hour — checks for approved posts that are due and publishes them to LinkedIn
+// Runs every hour — finds all users with stored tokens, publishes their approved due posts.
 const { schedule } = require('@netlify/functions');
 const { getStore } = require('@netlify/blobs');
 
-const handler = async (event) => {
+const handler = async () => {
   const store = getStore({ name: 'app-data', consistency: 'eventual' });
+  const now = new Date();
 
-  // 1. Check for a valid LinkedIn token
+  // 1. List all stored user tokens
+  let tokenKeys = [];
+  try {
+    const result = await store.list({ prefix: 'token-' });
+    tokenKeys = (result.blobs || []).map(b => b.key);
+  } catch (e) {
+    console.error('[cron] Failed to list tokens:', e.message);
+    return { statusCode: 200 };
+  }
+
+  if (!tokenKeys.length) {
+    console.log('[cron] No user tokens found');
+    return { statusCode: 200 };
+  }
+
+  console.log(`[cron] Found ${tokenKeys.length} user token(s)`);
+
+  // 2. For each user, check token validity and publish due posts
+  for (const tokenKey of tokenKeys) {
+    const personId = tokenKey.replace('token-', '');
+    try {
+      await processUser(store, personId, now);
+    } catch (e) {
+      console.error(`[cron] Error processing user ${personId}:`, e.message);
+    }
+  }
+
+  return { statusCode: 200 };
+};
+
+async function processUser(store, personId, now) {
+  // Load token
   let tokenData;
   try {
-    tokenData = await store.get('linkedin-token', { type: 'json' });
+    tokenData = await store.get(`token-${personId}`, { type: 'json' });
   } catch {
-    console.log('[cron] No LinkedIn token found');
-    return { statusCode: 200 };
+    console.log(`[cron] No token for user ${personId}`);
+    return;
   }
 
   if (!tokenData || !tokenData.token) {
-    console.log('[cron] No token stored');
-    return { statusCode: 200 };
-  }
-  if (new Date(tokenData.expiresAt) < new Date()) {
-    console.log('[cron] Token expired at', tokenData.expiresAt);
-    return { statusCode: 200 };
+    console.log(`[cron] Empty token for user ${personId}`);
+    return;
   }
 
-  // 2. Get all posts
+  if (new Date(tokenData.expiresAt) < now) {
+    console.log(`[cron] Token expired for user ${personId} at ${tokenData.expiresAt}`);
+    return;
+  }
+
+  // Load this user's posts
   let posts;
   try {
-    posts = await store.get('posts', { type: 'json' });
+    posts = await store.get(`posts-${personId}`, { type: 'json' });
   } catch {
     posts = [];
   }
-  if (!posts || !posts.length) return { statusCode: 200 };
+  if (!posts || !posts.length) return;
 
-  // 3. Find approved posts that are due
-  const now = new Date();
+  // Find approved posts that are due
   let changed = false;
 
   for (const post of posts) {
@@ -41,7 +73,7 @@ const handler = async (event) => {
     if (!post.scheduledDate) continue;
     if (new Date(post.scheduledDate) > now) continue;
 
-    console.log(`[cron] Publishing post ${post.id}: "${post.topic}"`);
+    console.log(`[cron] Publishing post ${post.id} for user ${personId}: "${post.topic}"`);
 
     try {
       const res = await fetch('https://api.linkedin.com/v2/ugcPosts', {
@@ -84,12 +116,10 @@ const handler = async (event) => {
   }
 
   if (changed) {
-    await store.setJSON('posts', posts);
-    console.log('[cron] Updated post statuses');
+    await store.setJSON(`posts-${personId}`, posts);
+    console.log(`[cron] Updated posts for user ${personId}`);
   }
-
-  return { statusCode: 200 };
-};
+}
 
 // Run at the top of every hour
 module.exports.handler = schedule('0 * * * *', handler);
