@@ -1278,13 +1278,13 @@ async function checkTokenStatus() {
 // WEEK PLAN (inside Create card)
 // ══════════════════════════════════════════════════════════════════════════════
 const WEEK_ANGLES = [
-  { day: 'Mon', label: 'Data & Statistics' },
-  { day: 'Tue', label: 'Contrarian Take' },
-  { day: 'Wed', label: 'Practical How-To' },
-  { day: 'Thu', label: 'Personal Story' },
-  { day: 'Fri', label: 'Future Prediction' },
-  { day: 'Sat', label: 'Industry Trend' },
-  { day: 'Sun', label: 'Mindset & Reflection' },
+  { day: 'Mon', label: 'Data & Statistics',   hint: 'Lead with a surprising stat or research finding. Make the numbers tell a story.' },
+  { day: 'Tue', label: 'Contrarian Take',      hint: 'Challenge conventional wisdom. Disagree with a widely held belief. Be bold.' },
+  { day: 'Wed', label: 'Practical How-To',     hint: 'Give 3-5 actionable steps or a concrete framework. Make it immediately useful.' },
+  { day: 'Thu', label: 'Personal Story',       hint: 'Frame it through a personal experience, a lesson learned, or a moment of realization.' },
+  { day: 'Fri', label: 'Future Prediction',    hint: 'Make a bold, specific prediction about where this topic is heading in 12-24 months.' },
+  { day: 'Sat', label: 'Industry Trend',       hint: 'Connect this topic to a broader shift. What signal is everyone missing?' },
+  { day: 'Sun', label: 'Mindset & Reflection', hint: 'Take a philosophical/mindset angle. What deeper truth does this topic reveal?' },
 ];
 
 function initWeekDefaults() {
@@ -1374,76 +1374,83 @@ async function generateWeekNow() {
   fillEl.style.width = '2%';
   statusEl.textContent = 'AI is writing 7 unique posts — one per angle…';
 
-  try {
-    const res = await fetch('/.netlify/functions/gemini-weekly', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, category: currentCat, tone: currentTone })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Generation failed');
+  // Generate posts one-at-a-time from the CLIENT to avoid serverless timeouts.
+  // Each call to gemini-generate is fast (~3s); only the client waits between them.
+  let scheduled = 0, failed = 0;
 
-    const results = data.results || [];
-    fillEl.style.width = '60%';
-    statusEl.textContent = 'Saving ' + results.filter(r => r.post).length + ' posts to your calendar…';
+  for (let i = 0; i < WEEK_ANGLES.length; i++) {
+    const angleInfo = WEEK_ANGLES[i];
+    const pct = Math.round(((i + 0.5) / WEEK_ANGLES.length) * 80);
+    fillEl.style.width = pct + '%';
+    statusEl.textContent = 'Generating post ' + (i + 1) + ' of 7 — ' + angleInfo.day + ' (' + angleInfo.label + ')…';
 
-    let scheduled = 0, failed = 0;
-
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
-      fillEl.style.width = (60 + Math.round(((i + 1) / results.length) * 40)) + '%';
-
-      if (r.error || !r.post) {
-        failed++;
-        resultsEl.innerHTML += '<div class="week-result-err">❌ <strong>' + (r.day || 'Day ' + (i+1)) + '</strong> — ' + (r.error || 'No post') + '</div>';
-        continue;
-      }
-
-      const schedDate = new Date(startDate + 'T' + timeVal + ':00');
-      schedDate.setDate(schedDate.getDate() + i);
-
-      try {
-        const saveRes = await fetch('/.netlify/functions/schedule-posts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            topic: topic + ' — ' + (WEEK_ANGLES[i] ? WEEK_ANGLES[i].label : r.angle),
-            category: currentCat,
-            tone: currentTone,
-            text: r.post,
-            status: approvalRequired ? 'draft' : 'approved',
-            scheduledDate: schedDate.toISOString()
-          })
-        });
-        const saveData = await saveRes.json();
-        if (!saveRes.ok) throw new Error(saveData.error || 'Save failed');
-        scheduledPosts = saveData.posts || scheduledPosts;
-        scheduled++;
-        const angleLabel = WEEK_ANGLES[i] ? WEEK_ANGLES[i].label : r.angle;
-        const dateStr = schedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        resultsEl.innerHTML += '<div class="week-result-ok">✅ <strong>' + (r.day || dateStr) + '</strong> · ' + angleLabel + ' · ' + dateStr + '</div>';
-      } catch (e) {
-        failed++;
-        resultsEl.innerHTML += '<div class="week-result-err">❌ <strong>' + r.day + '</strong> — ' + e.message + '</div>';
-      }
+    let postText = null;
+    try {
+      const genRes = await fetch('/.netlify/functions/gemini-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic,
+          category: currentCat,
+          tone: currentTone,
+          angle: angleInfo.label,
+          angleHint: angleInfo.hint
+        })
+      });
+      const genData = await genRes.json();
+      if (!genRes.ok) throw new Error(genData.error || 'Generation failed');
+      postText = genData.post;
+    } catch (e) {
+      failed++;
+      resultsEl.innerHTML += '<div class="week-result-err">❌ <strong>' + angleInfo.day + '</strong> (' + angleInfo.label + ') — ' + e.message + '</div>';
+      continue;
     }
 
-    fillEl.style.width = '100%';
-    statusEl.textContent = '✅ Done — ' + scheduled + ' posts queued' + (failed ? ', ' + failed + ' failed' : '') + '.';
+    // Save to calendar
+    const schedDate = new Date(startDate + 'T' + timeVal + ':00');
+    schedDate.setDate(schedDate.getDate() + i);
+    const dateStr = schedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    try {
+      const saveRes = await fetch('/.netlify/functions/schedule-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          topic: topic + ' — ' + angleInfo.label,
+          category: currentCat,
+          tone: currentTone,
+          text: postText,
+          status: approvalRequired ? 'draft' : 'approved',
+          scheduledDate: schedDate.toISOString()
+        })
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.error || 'Save failed');
+      scheduledPosts = saveData.posts || scheduledPosts;
+      scheduled++;
+      fillEl.style.width = Math.round(((i + 1) / WEEK_ANGLES.length) * 80) + '%';
+      resultsEl.innerHTML += '<div class="week-result-ok">✅ <strong>' + angleInfo.day + '</strong> · ' + angleInfo.label + ' · ' + dateStr + '</div>';
+    } catch (e) {
+      failed++;
+      resultsEl.innerHTML += '<div class="week-result-err">❌ <strong>' + angleInfo.day + '</strong> — Saved failed: ' + e.message + '</div>';
+    }
+  }
+
+  fillEl.style.width = '100%';
+  statusEl.textContent = scheduled > 0
+    ? '✅ Done — ' + scheduled + ' posts queued' + (failed ? ', ' + failed + ' failed' : '') + '.'
+    : '❌ All posts failed. Check your Netlify deployment and GEMINI_API_KEY.';
+
+  if (scheduled > 0) {
     renderCalendar();
     document.getElementById('calCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    // Persist topic + settings for weekly cron
-    await fetch('/.netlify/functions/weekly-settings', {
+    // Persist topic + settings for the weekly cron
+    fetch('/.netlify/functions/weekly-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, topic, category: currentCat, tone: currentTone, postTime: timeVal })
-    });
-
-  } catch (e) {
-    statusEl.textContent = '❌ Error: ' + e.message;
-    fillEl.style.width = '0%';
+    }).catch(() => {});
   }
 
   btn.disabled = false;

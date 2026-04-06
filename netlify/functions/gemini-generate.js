@@ -31,12 +31,12 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON' }) };
   }
 
-  const { topic, category, tone } = body;
+  const { topic, category, tone, angle, angleHint } = body;
   if (!topic) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'topic is required' }) };
   }
 
-  const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging');
+  const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging', angle, angleHint);
 
   try {
     // Use gemini-2.5-flash — free tier: 10 RPM, 250 requests/day
@@ -73,16 +73,19 @@ exports.handler = async (event) => {
   }
 };
 
-function buildPrompt(topic, category, tone) {
+function buildPrompt(topic, category, tone, angle, angleHint) {
+  const angleSection = angle
+    ? `\nToday's angle: ${angle}\nAngle guidance: ${angleHint || 'Write from this specific angle and perspective.'}\n`
+    : '';
+
   return `You are an expert LinkedIn content strategist writing for Manthan Surti, a professional in tech and business.
 
 Write a high-quality, unique LinkedIn post about: "${topic}"
 Category: ${category}
-Tone: ${tone}
-
+Tone: ${tone}${angleSection}
 REQUIREMENTS — follow every single one:
-1. Hook (line 1): Must be irresistible. Use a bold contrarian statement, a surprising stat, a short provocative question, or a vivid scenario. Do NOT start with "I" or "We". Make people stop scrolling.
-2. Body: Include at least 1-2 specific, real, credible data points or recent developments. Weave them naturally — don't just list stats.
+1. Hook (line 1): Must be irresistible${angle ? ` and fit the "${angle}" angle` : ''}. Do NOT start with "I" or "We". Make people stop scrolling.
+2. Body: Include at least 1-2 specific, real, credible data points or recent developments. Weave them naturally.
 3. Insight: Share a non-obvious perspective or contrarian take that makes the reader think differently.
 4. Structure: Use short paragraphs (1-3 lines max), blank lines between sections, and arrows (→) or checkmarks for lists. Never use bullet points with dashes.
 5. Storytelling: Include a brief concrete example or real-world scenario that grounds the insight.
