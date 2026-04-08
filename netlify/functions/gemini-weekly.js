@@ -80,7 +80,7 @@ exports.handler = async (event) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 1024 },
+            generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 8192 },
           }),
         }
       );
