@@ -60,7 +60,9 @@ async function generatePost(apiKey, topic, category, tone, angleInfo) {
     throw new Error(err.error?.message || `Gemini error ${res.status}`);
   }
   const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  const textPart = parts.find(p => !p.thought && p.text);
+  const text = textPart?.text?.trim();
   if (!text) throw new Error('Empty response from Gemini');
   return text;
 }

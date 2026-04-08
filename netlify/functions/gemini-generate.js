@@ -55,7 +55,10 @@ exports.handler = async (event) => {
     }
 
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    // Gemini 2.5 Pro is a thinking model — skip thought parts, get the real output
+    const textPart = parts.find(p => !p.thought && p.text);
+    const text = textPart?.text?.trim();
     if (!text) throw new Error('Empty response from Gemini');
 
     return {

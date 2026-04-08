@@ -92,7 +92,9 @@ exports.handler = async (event) => {
       }
 
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      const textPart = parts.find(p => !p.thought && p.text);
+      const text = textPart?.text?.trim();
       if (!text) {
         results.push({ day: angleInfo.day, angle: angleInfo.angle, error: 'Empty response from Gemini' });
         continue;
