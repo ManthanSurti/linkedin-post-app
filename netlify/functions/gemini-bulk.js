@@ -49,7 +49,9 @@ exports.handler = async (event) => {
       }
 
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      const bParts = data.candidates?.[0]?.content?.parts || [];
+      const bTextPart = bParts.find(p => !p.thought && p.text);
+      const text = bTextPart?.text?.trim();
       if (!text) {
         results.push({ topic, error: 'Empty response from Gemini' });
         continue;

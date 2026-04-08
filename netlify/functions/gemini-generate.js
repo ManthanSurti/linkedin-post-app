@@ -1,4 +1,5 @@
-// Calls Google Gemini 2.5 Pro API — key stored as a Netlify environment variable
+// Calls Google Gemini 2.5 Flash API — fast enough for Netlify serverless (10s timeout)
+// Pro is too slow (thinking model, 30s+). Pro is used only in weekly-cron (background, 15 min timeout).
 exports.handler = async (event) => {
   const CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -44,6 +45,7 @@ exports.handler = async (event) => {
             temperature: 1.0,
             topP: 0.95,
             maxOutputTokens: 8192,
+            thinkingConfig: { thinkingBudget: 2048 },
           },
         }),
       }

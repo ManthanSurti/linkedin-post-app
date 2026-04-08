@@ -1,5 +1,6 @@
 // Generates 7 LinkedIn posts from ONE topic — each post uses a different angle.
-// Called by both the UI ("Generate This Week" button) and the weekly cron job.
+// Uses Gemini 2.5 Flash — fast enough for Netlify serverless timeout.
+// Pro is only used in weekly-cron.js (background function with 15 min timeout).
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -80,7 +81,7 @@ exports.handler = async (event) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 8192 },
+            generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 2048 } },
           }),
         }
       );

@@ -51,7 +51,7 @@ async function generatePost(apiKey, topic, category, tone, angleInfo) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: buildPrompt(topic, category, tone, angleInfo) }] }],
-        generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 8192 },
+        generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 8192 } },
       }),
     }
   );
