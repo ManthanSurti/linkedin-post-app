@@ -1,5 +1,4 @@
-// Calls Google Gemini API using the key stored as a Netlify environment variable
-// The key is never exposed to the browser
+// Calls Google Gemini 2.5 Pro API — key stored as a Netlify environment variable
 exports.handler = async (event) => {
   const CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -7,13 +6,8 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: CORS, body: '' };
-  }
-
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
-  }
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -39,13 +33,19 @@ exports.handler = async (event) => {
   const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging', angle, angleHint);
 
   try {
-    // Use gemini-2.5-flash — free tier: 10 RPM, 250 requests/day
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 1.0,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          },
+        }),
       }
     );
 
@@ -56,7 +56,6 @@ exports.handler = async (event) => {
 
     const data = await res.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
     if (!text) throw new Error('Empty response from Gemini');
 
     return {
@@ -74,25 +73,47 @@ exports.handler = async (event) => {
 };
 
 function buildPrompt(topic, category, tone, angle, angleHint) {
-  const angleSection = angle
-    ? `\nToday's angle: ${angle}\nAngle guidance: ${angleHint || 'Write from this specific angle and perspective.'}\n`
-    : '';
+  const toneInstructions = {
+    'Conversational & engaging': 'Write like a sharp, self-aware professional talking to a peer over coffee. Direct, warm, no fluff.',
+    'Thought leadership — data-driven, authoritative': 'Write like a respected industry expert making a well-reasoned, evidence-backed argument. Authoritative without being arrogant.',
+    'Storytelling — personal experience, lessons learned': 'Write like someone sharing a hard-won lesson. Vulnerable enough to be relatable, specific enough to be credible.',
+    'Punchy & bold — contrarian takes, provocative': 'Write like someone who genuinely disagrees with the mainstream. Bold claims, sharp edges, zero hedging.',
+  };
 
-  return `You are an expert LinkedIn content strategist writing for Manthan Surti, a professional in tech and business.
+  const toneGuide = toneInstructions[tone] || toneInstructions['Conversational & engaging'];
 
-Write a high-quality, unique LinkedIn post about: "${topic}"
-Category: ${category}
-Tone: ${tone}${angleSection}
-REQUIREMENTS — follow every single one:
-1. Hook (line 1): Must be irresistible${angle ? ` and fit the "${angle}" angle` : ''}. Do NOT start with "I" or "We". Make people stop scrolling.
-2. Body: Include at least 1-2 specific, real, credible data points or recent developments. Weave them naturally.
-3. Insight: Share a non-obvious perspective or contrarian take that makes the reader think differently.
-4. Structure: Use short paragraphs (1-3 lines max), blank lines between sections, and arrows (→) or checkmarks for lists. Never use bullet points with dashes.
-5. Storytelling: Include a brief concrete example or real-world scenario that grounds the insight.
-6. CTA: End with a single engaging open-ended question that invites comments.
-7. Hashtags: Add exactly 5 highly relevant hashtags on the last line.
-8. Length: Between 900–1,400 characters (optimal for LinkedIn algorithm).
-9. Tone check: No corporate jargon. No "In today's fast-paced world". No "I'm excited to share". Sound human, smart, and direct.
+  const angleSection = angle ? `
+ANGLE FOR THIS POST: ${angle}
+Angle direction: ${angleHint}
+Every part of this post — the hook, body, and CTA — must serve this specific angle. Don't drift from it.
+` : '';
 
-Output ONLY the post text. No preamble, no explanation, no quotes around it. Just the raw post ready to copy-paste.`;
+  return `You are a world-class LinkedIn ghostwriter. You write for Manthan Surti — a sharp, credible voice in tech and business. Your posts earn thousands of impressions because they say something real, not something safe.
+
+TOPIC: "${topic}"
+CATEGORY: ${category}
+TONE DIRECTION: ${toneGuide}
+${angleSection}
+YOUR MISSION: Write a LinkedIn post that makes professionals stop, read every word, and feel compelled to respond. Not a generic take — a specific, unexpected, well-argued one.
+
+STRUCTURAL RULES (non-negotiable):
+→ LINE 1 IS EVERYTHING. It must create instant curiosity or tension. No "I", no "We", no questions starting with "Have you ever". Use a bold claim, a striking stat, a short punchy sentence, or a scenario that creates FOMO. Think: what would make someone pause mid-scroll?
+→ Keep paragraphs to 1–3 lines max. Use blank lines between every paragraph.
+→ Use → or ✓ for any list items. Never use dashes or bullet points.
+→ Build to an insight the reader didn't see coming. The best LinkedIn posts teach something the reader didn't know they needed to know.
+→ Use at least one specific, verifiable data point or real-world example. Vague claims kill credibility.
+→ End with ONE open-ended question that sparks a genuine debate or reflection — not "What do you think?" or "Agree?".
+→ Final line: exactly 5 hashtags, highly relevant, no spaces between them.
+
+WHAT TO AVOID:
+✗ "In today's fast-paced world..."
+✗ "Game-changer", "synergy", "leverage", "paradigm shift"
+✗ "I'm excited/thrilled/honoured to share..."
+✗ Generic advice that could apply to any industry
+✗ Fake humility or false modesty
+✗ Padding sentences that add length but not meaning
+
+LENGTH: 950–1,350 characters. Every word must earn its place.
+
+Output ONLY the post. No preamble, no "Here's the post:", no quotes. Raw text, ready to publish.`;
 }

@@ -22,26 +22,31 @@ const ANGLES = [
 ];
 
 function buildPrompt(topic, category, tone, angleInfo) {
-  return `You are an expert LinkedIn content strategist writing for Manthan Surti, a professional in tech and business.
+  return `You are a world-class LinkedIn ghostwriter. You write for Manthan Surti — a sharp, credible voice in tech and business. Your posts earn thousands of impressions because they say something real, not something safe.
 
-Write a high-quality LinkedIn post about: "${topic}"
-Category: ${category}
-Tone: ${tone}
-Today's angle: ${angleInfo.angle}
-Angle guidance: ${angleInfo.hint}
+TOPIC: "${topic}"
+CATEGORY: ${category}
+TONE: ${tone}
+ANGLE: ${angleInfo.angle}
+ANGLE DIRECTION: ${angleInfo.hint}
+Every part of this post — the hook, body, and CTA — must serve this specific angle. Don't drift from it.
 
-REQUIREMENTS — follow every single one:
-1. Hook (line 1): Must be irresistible and fit the angle above. Do NOT start with "I" or "We". Make people stop scrolling.
-2. Body: Include at least 1-2 specific, real, credible data points or recent developments. Weave them naturally.
-3. Insight: Share a non-obvious perspective that fits the "${angleInfo.angle}" angle.
-4. Structure: Short paragraphs (1-3 lines max), blank lines between sections, arrows (→) or checkmarks for lists. No bullet dashes.
-5. Storytelling: A brief concrete example or real-world scenario grounding the insight.
-6. CTA: End with a single engaging open-ended question inviting comments.
-7. Hashtags: Exactly 5 relevant hashtags on the last line.
-8. Length: Between 900–1,400 characters.
-9. Tone: No corporate jargon. Sound human, smart, direct.
+YOUR MISSION: Write a LinkedIn post that makes professionals stop, read every word, and feel compelled to respond.
 
-Output ONLY the post text. No preamble, no explanation, no quotes. Just the raw post ready to copy-paste.`;
+STRUCTURAL RULES (non-negotiable):
+→ LINE 1 IS EVERYTHING. Bold claim, striking stat, punchy scenario — create instant tension. No "I", no "We".
+→ Paragraphs: 1–3 lines max. Blank line between every paragraph.
+→ Use → or ✓ for lists. Never dashes or bullet points.
+→ Build to an insight the reader didn't see coming.
+→ At least one specific, verifiable data point or real-world example.
+→ End with ONE open-ended question that sparks genuine debate — not "What do you think?" or "Agree?".
+→ Final line: exactly 5 relevant hashtags.
+
+AVOID: "fast-paced world", "game-changer", "synergy", "excited to share", generic advice, padding.
+
+LENGTH: 950–1,350 characters. Every word must earn its place.
+
+Output ONLY the post. No preamble, no quotes. Raw text, ready to publish.`;
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -69,11 +74,14 @@ exports.handler = async (event) => {
 
       const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging', angleInfo);
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 1024 },
+          }),
         }
       );
 
