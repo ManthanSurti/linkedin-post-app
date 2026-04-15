@@ -22,8 +22,9 @@ const ANGLES = [
   { day: 'Sunday',    angle: 'Mindset & Reflection',     hint: 'Take a philosophical or mindset angle. What deeper truth does this topic reveal?' },
 ];
 
-function buildPrompt(topic, category, tone, angleInfo) {
-  return `You are a world-class LinkedIn ghostwriter. You write for Manthan Surti — a sharp, credible voice in tech and business. Your posts earn thousands of impressions because they say something real, not something safe.
+function buildPrompt(topic, category, tone, angleInfo, userName) {
+  const author = userName ? userName : 'a sharp professional';
+  return `You are a world-class LinkedIn ghostwriter. You write for ${author} — a credible voice in tech and business. Your posts earn thousands of impressions because they say something real, not something safe.
 
 TOPIC: "${topic}"
 CATEGORY: ${category}
@@ -63,7 +64,7 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body || '{}'); }
   catch { return json(400, { error: 'Invalid JSON' }); }
 
-  const { topic, category, tone } = body;
+  const { topic, category, tone, userName } = body;
   if (!topic) return json(400, { error: 'topic is required' });
 
   const results = [];
@@ -73,7 +74,7 @@ exports.handler = async (event) => {
     try {
       if (i > 0) await sleep(7000); // respect 10 RPM rate limit
 
-      const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging', angleInfo);
+      const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging', angleInfo, userName);
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
         {

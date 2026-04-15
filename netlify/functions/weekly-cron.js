@@ -15,8 +15,9 @@ const ANGLES = [
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function buildPrompt(topic, category, tone, angleInfo) {
-  return `You are a world-class LinkedIn ghostwriter. You write for Manthan Surti — a sharp, credible voice in tech and business. Your posts earn thousands of impressions because they say something real, not something safe.
+function buildPrompt(topic, category, tone, angleInfo, userName) {
+  const author = userName ? userName : 'a sharp professional';
+  return `You are a world-class LinkedIn ghostwriter. You write for ${author} — a credible voice in tech and business. Your posts earn thousands of impressions because they say something real, not something safe.
 
 TOPIC: "${topic}"
 CATEGORY: ${category}
@@ -43,14 +44,14 @@ LENGTH: 950–1,350 characters. Every word must earn its place.
 Output ONLY the post. No preamble, no quotes. Raw text, ready to publish.`;
 }
 
-async function generatePost(apiKey, topic, category, tone, angleInfo) {
+async function generatePost(apiKey, topic, category, tone, angleInfo, userName) {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: buildPrompt(topic, category, tone, angleInfo) }] }],
+        contents: [{ parts: [{ text: buildPrompt(topic, category, tone, angleInfo, userName) }] }],
         generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 8192 } },
       }),
     }
@@ -134,7 +135,7 @@ async function processUser(store, apiKey, userId, now) {
       if (i > 0) await sleep(7000); // respect Gemini 10 RPM limit
 
       console.log(`[weekly-cron] User ${userId}: generating post ${i + 1}/7 (${angleInfo.angle})`);
-      const text = await generatePost(apiKey, settings.topic, settings.category || 'General', settings.tone || 'Conversational & engaging', angleInfo);
+      const text = await generatePost(apiKey, settings.topic, settings.category || 'General', settings.tone || 'Conversational & engaging', angleInfo, settings.userName || '');
 
       posts.push({
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),

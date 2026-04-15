@@ -26,12 +26,12 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON' }) };
   }
 
-  const { topic, category, tone, angle, angleHint } = body;
+  const { topic, category, tone, angle, angleHint, userName } = body;
   if (!topic) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'topic is required' }) };
   }
 
-  const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging', angle, angleHint);
+  const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging', angle, angleHint, userName);
 
   try {
     const res = await fetch(
@@ -77,7 +77,8 @@ exports.handler = async (event) => {
   }
 };
 
-function buildPrompt(topic, category, tone, angle, angleHint) {
+function buildPrompt(topic, category, tone, angle, angleHint, userName) {
+  const author = userName ? userName : 'a sharp professional';
   const toneInstructions = {
     'Conversational & engaging': 'Write like a sharp, self-aware professional talking to a peer over coffee. Direct, warm, no fluff.',
     'Thought leadership — data-driven, authoritative': 'Write like a respected industry expert making a well-reasoned, evidence-backed argument. Authoritative without being arrogant.',
@@ -93,7 +94,7 @@ Angle direction: ${angleHint}
 Every part of this post — the hook, body, and CTA — must serve this specific angle. Don't drift from it.
 ` : '';
 
-  return `You are a world-class LinkedIn ghostwriter. You write for Manthan Surti — a sharp, credible voice in tech and business. Your posts earn thousands of impressions because they say something real, not something safe.
+  return `You are a world-class LinkedIn ghostwriter. You write for ${author} — a credible voice in tech and business. Your posts earn thousands of impressions because they say something real, not something safe.
 
 TOPIC: "${topic}"
 CATEGORY: ${category}

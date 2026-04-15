@@ -21,7 +21,7 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body || '{}'); }
   catch { return json(400, { error: 'Invalid JSON' }); }
 
-  const { topics, category, tone } = body;
+  const { topics, category, tone, userName } = body;
   if (!topics || !topics.length) return json(400, { error: 'topics array is required' });
   if (topics.length > 14) return json(400, { error: 'Maximum 14 topics per batch' });
 
@@ -32,7 +32,7 @@ exports.handler = async (event) => {
       // Small delay between requests to respect rate limits (10 RPM)
       if (results.length > 0) await sleep(7000);
 
-      const prompt = buildPrompt(topic.trim(), category || 'General', tone || 'Conversational & engaging');
+      const prompt = buildPrompt(topic.trim(), category || 'General', tone || 'Conversational & engaging', userName);
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
@@ -68,8 +68,9 @@ exports.handler = async (event) => {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function buildPrompt(topic, category, tone) {
-  return `You are an expert LinkedIn content strategist writing for Manthan Surti, a professional in tech and business.
+function buildPrompt(topic, category, tone, userName) {
+  const author = userName ? userName : 'a sharp professional';
+  return `You are an expert LinkedIn content strategist writing for ${author}, a professional in tech and business.
 
 Write a high-quality, unique LinkedIn post about: "${topic}"
 Category: ${category}
