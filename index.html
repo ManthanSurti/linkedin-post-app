@@ -476,11 +476,6 @@
 
     <!-- ── Week Plan mode ── -->
     <div id="weekActions" style="display:none;">
-      <!-- Weekly topic (separate from single-post topic) -->
-      <div style="margin-bottom:18px;">
-        <label class="field-label">Weekly Topic</label>
-        <input type="text" id="weekTopicInput" placeholder="e.g. AI in product management, leadership lessons, startup growth…" />
-      </div>
 
       <!-- Date + time -->
       <div class="week-row">
@@ -567,9 +562,9 @@
     <div class="versions" id="versionTabs"></div>
     <div class="li-preview">
       <div class="li-top">
-        <div class="avatar">M</div>
+        <div class="avatar" id="previewAvatar">?</div>
         <div>
-          <div class="li-name-txt">Manthan Surti</div>
+          <div class="li-name-txt" id="previewName">Your Name</div>
           <div class="li-meta">Just now</div>
         </div>
       </div>
@@ -953,6 +948,9 @@ function showLiConnected() {
   document.getElementById('liUserName').textContent = liUserName;
   document.getElementById('liAvatar').textContent = liUserName.charAt(0).toUpperCase();
   document.getElementById('publishTxt').textContent = 'Publish Now';
+  // Update post preview card with real user name and avatar initial
+  document.getElementById('previewName').textContent = liUserName;
+  document.getElementById('previewAvatar').textContent = liUserName.charAt(0).toUpperCase();
   setLiStatus('', true);
   // Unlock calendar and load this user's posts
   showCalendarForUser();
@@ -1309,7 +1307,8 @@ async function loadWeeklySettings(userId) {
     const res = await fetch('/.netlify/functions/weekly-settings?userId=' + encodeURIComponent(userId));
     const data = await res.json();
     // Pre-fill the weekly topic input if saved
-    if (data.topic) document.getElementById('weekTopicInput').value = data.topic;
+    if (data.topic && !document.getElementById('topicInput').value)
+      document.getElementById('topicInput').value = data.topic;
     if (data.postTime) document.getElementById('weekPostTime').value = data.postTime;
     document.getElementById('weekAutoEnabled').checked = !!data.enabled;
     const lastEl = document.getElementById('weekLastRun');
@@ -1325,10 +1324,10 @@ async function loadWeeklySettings(userId) {
 async function saveWeeklySettingsFromCard() {
   const userId = getPersonId();
   if (!userId) { alert('Please connect LinkedIn first.'); return; }
-  const topic = document.getElementById('weekTopicInput').value.trim();
+  const topic = document.getElementById('topicInput').value.trim();
   const postTime = document.getElementById('weekPostTime').value;
   const enabled = document.getElementById('weekAutoEnabled').checked;
-  if (!topic) { alert('Please enter a weekly topic before saving.'); return; }
+  if (!topic) { alert('Please enter a topic before saving.'); return; }
   try {
     await fetch('/.netlify/functions/weekly-settings', {
       method: 'POST',
@@ -1357,8 +1356,8 @@ async function generateWeekNow() {
   const userId = getPersonId();
   if (!userId) { alert('Please connect your LinkedIn account first.'); return; }
 
-  const topic = document.getElementById('weekTopicInput').value.trim();
-  if (!topic) { alert('Please enter a weekly topic.'); document.getElementById('weekTopicInput').focus(); return; }
+  const topic = document.getElementById('topicInput').value.trim();
+  if (!topic) { alert('Please enter a topic.'); document.getElementById('topicInput').focus(); return; }
 
   const startDate = document.getElementById('weekStartDate').value;
   if (!startDate) { alert('Please set a start date.'); return; }
