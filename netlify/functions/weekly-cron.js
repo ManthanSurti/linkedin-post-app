@@ -1,5 +1,7 @@
 // Runs every Monday at 6 AM UTC.
 // For every user who has weekly auto-post enabled, generates 7 posts and queues them Mon–Sun.
+// Uses Gemini 2.5 Flash + Google Search grounding: fast, accurate, and current.
+// All 7 posts generated in parallel — no sequential delays needed.
 const { schedule } = require('@netlify/functions');
 const { getStore } = require('@netlify/blobs');
 
@@ -12,8 +14,6 @@ const ANGLES = [
   { day: 'Saturday',  angle: 'Industry Trend',       hint: 'Connect this topic to a broader shift. What signal is everyone missing?' },
   { day: 'Sunday',    angle: 'Mindset & Reflection', hint: 'Take a philosophical/mindset angle. What deeper truth does this topic reveal?' },
 ];
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function buildPrompt(topic, category, tone, angleInfo, userName) {
   const author = userName ? userName : 'a sharp professional';
@@ -46,13 +46,17 @@ Output ONLY the post. No preamble, no quotes. Raw text, ready to publish.`;
 
 async function generatePost(apiKey, topic, category, tone, angleInfo, userName) {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+    // Flash is sufficient quality for auto-generated posts and ~10x faster than Pro.
+    // Google Search grounding replaces the need for high thinkingBudget to get accurate facts.
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: buildPrompt(topic, category, tone, angleInfo, userName) }] }],
-        generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 8192 } },
+        // Google Search grounding — Gemini fetches live results so stats are current.
+        tools: [{ google_search: {} }],
+        generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 4096 },
       }),
     }
   );
@@ -62,7 +66,7 @@ async function generatePost(apiKey, topic, category, tone, angleInfo, userName) 
   }
   const data = await res.json();
   const parts = data.candidates?.[0]?.content?.parts || [];
-  const textPart = parts.find(p => !p.thought && p.text);
+  const textPart = parts.find(p => p.text);
   const text = textPart?.text?.trim();
   if (!text) throw new Error('Empty response from Gemini');
   return text;
@@ -127,42 +131,32 @@ async function processUser(store, apiKey, userId, now) {
   // Load existing posts
   let posts = await store.get(`posts-${userId}`, { type: 'json' }).catch(() => []) || [];
 
-  // Generate and queue each post
+  const cat = settings.category || 'General';
+  const tn  = settings.tone || 'Conversational & engaging';
+  const uName = settings.userName || '';
+  const postStatus = (appSettings && appSettings.approvalRequired) ? 'draft' : 'approved';
+
+  // Generate all 7 posts in parallel — Flash is fast enough and 7 simultaneous
+  // requests stays under the 10 RPM free-tier limit.
+  console.log(`[weekly-cron] User ${userId}: generating 7 posts in parallel`);
+  const settled = await Promise.allSettled(
+    ANGLES.map(angleInfo => generatePost(apiKey, settings.topic, cat, tn, angleInfo, uName))
+  );
+
   let created = 0;
   for (let i = 0; i < ANGLES.length; i++) {
+    const outcome = settled[i];
     const angleInfo = ANGLES[i];
-    try {
-      if (i > 0) await sleep(7000); // respect Gemini 10 RPM limit
-
-      console.log(`[weekly-cron] User ${userId}: generating post ${i + 1}/7 (${angleInfo.angle})`);
-      const text = await generatePost(apiKey, settings.topic, settings.category || 'General', settings.tone || 'Conversational & engaging', angleInfo, settings.userName || '');
-
+    if (outcome.status === 'fulfilled') {
       posts.push({
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
         userId,
         topic: `${settings.topic} — ${angleInfo.angle}`,
-        category: settings.category || 'General',
-        tone: settings.tone || 'Conversational & engaging',
-        text,
-        status: (appSettings && appSettings.approvalRequired) ? 'draft' : 'approved',
+        category: cat,
+        tone: tn,
+        text: outcome.value,
+        status: postStatus,
         scheduledDate: scheduledDates[i].toISOString(),
         weeklyAuto: true,
         createdAt: now.toISOString(),
-        updatedAt: now.toISOString(),
-      });
-      created++;
-    } catch (e) {
-      console.error(`[weekly-cron] User ${userId}, ${angleInfo.day} failed:`, e.message);
-    }
-  }
-
-  if (created > 0) {
-    await store.setJSON(`posts-${userId}`, posts);
-    settings.lastGeneratedWeek = now.toISOString();
-    await store.setJSON(`weekly-settings-${userId}`, settings);
-    console.log(`[weekly-cron] User ${userId}: queued ${created}/7 posts`);
-  }
-}
-
-// Every Monday at 6:00 AM UTC
-module.exports.handler = schedule('0 6 * * 1', handler);
+        updatedAt: now.toISOString

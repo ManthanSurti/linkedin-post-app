@@ -1,5 +1,5 @@
-// Calls Google Gemini 2.5 Flash API — fast enough for Netlify serverless (10s timeout)
-// Pro is too slow (thinking model, 30s+). Pro is used only in weekly-cron (background, 15 min timeout).
+// Calls Gemini 2.5 Flash with Google Search grounding — fast (fits 10s timeout) + accurate.
+// Google Search grounding lets Gemini fetch live web results before writing, so stats are real.
 exports.handler = async (event) => {
   const CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -35,17 +35,19 @@ exports.handler = async (event) => {
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
+          // Google Search grounding — Gemini searches the web before writing.
+          // This ensures the post cites real, current stats rather than training-data guesses.
+          tools: [{ google_search: {} }],
           generationConfig: {
             temperature: 1.0,
             topP: 0.95,
-            maxOutputTokens: 8192,
-            thinkingConfig: { thinkingBudget: 2048 },
+            maxOutputTokens: 4096,
           },
         }),
       }
@@ -58,8 +60,7 @@ exports.handler = async (event) => {
 
     const data = await res.json();
     const parts = data.candidates?.[0]?.content?.parts || [];
-    // Gemini 2.5 Pro is a thinking model — skip thought parts, get the real output
-    const textPart = parts.find(p => !p.thought && p.text);
+    const textPart = parts.find(p => p.text);
     const text = textPart?.text?.trim();
     if (!text) throw new Error('Empty response from Gemini');
 
@@ -121,5 +122,4 @@ WHAT TO AVOID:
 
 LENGTH: 950–1,350 characters. Every word must earn its place.
 
-Output ONLY the post. No preamble, no "Here's the post:", no quotes. Raw text, ready to publish.`;
-}
+Output ONLY the post. No preamble, no

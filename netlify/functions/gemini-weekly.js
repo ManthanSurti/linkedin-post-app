@@ -1,6 +1,7 @@
 // Generates 7 LinkedIn posts from ONE topic — each post uses a different angle.
-// Uses Gemini 2.5 Flash — fast enough for Netlify serverless timeout.
-// Pro is only used in weekly-cron.js (background function with 15 min timeout).
+// Uses Gemini 2.5 Flash (fast, fits in Netlify 10s serverless timeout).
+// All 7 calls run in parallel — safe under 10 RPM since they fire simultaneously.
+// Google Search grounding is enabled so posts cite real, current information.
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -51,7 +52,35 @@ LENGTH: 950–1,350 characters. Every word must earn its place.
 Output ONLY the post. No preamble, no quotes. Raw text, ready to publish.`;
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+async function generatePost(apiKey, topic, category, tone, angleInfo, userName) {
+  const prompt = buildPrompt(topic, category, tone, angleInfo, userName);
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        // Google Search grounding — Gemini fetches live web results before writing,
+        // ensuring stats and trends in the post are current and verifiable.
+        tools: [{ google_search: {} }],
+        generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 4096 },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Gemini error ${res.status}`);
+  }
+
+  const data = await res.json();
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  const textPart = parts.find(p => p.text);
+  const text = textPart?.text?.trim();
+  if (!text) throw new Error('Empty response from Gemini');
+  return text;
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
@@ -67,46 +96,14 @@ exports.handler = async (event) => {
   const { topic, category, tone, userName } = body;
   if (!topic) return json(400, { error: 'topic is required' });
 
-  const results = [];
+  const cat  = category || 'General';
+  const tn   = tone || 'Conversational & engaging';
 
-  for (let i = 0; i < ANGLES.length; i++) {
-    const angleInfo = ANGLES[i];
-    try {
-      if (i > 0) await sleep(7000); // respect 10 RPM rate limit
+  // Fire all 7 in parallel — Flash is fast (~3-5s each), and 7 simultaneous
+  // requests comfortably fits under the 10 RPM free-tier limit.
+  const settled = await Promise.allSettled(
+    ANGLES.map(angleInfo => generatePost(apiKey, topic, cat, tn, angleInfo, userName))
+  );
 
-      const prompt = buildPrompt(topic, category || 'General', tone || 'Conversational & engaging', angleInfo, userName);
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 2048 } },
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        results.push({ day: angleInfo.day, angle: angleInfo.angle, error: err.error?.message || `Gemini error ${res.status}` });
-        continue;
-      }
-
-      const data = await res.json();
-      const parts = data.candidates?.[0]?.content?.parts || [];
-      const textPart = parts.find(p => !p.thought && p.text);
-      const text = textPart?.text?.trim();
-      if (!text) {
-        results.push({ day: angleInfo.day, angle: angleInfo.angle, error: 'Empty response from Gemini' });
-        continue;
-      }
-
-      results.push({ day: angleInfo.day, angle: angleInfo.angle, post: text });
-    } catch (e) {
-      results.push({ day: angleInfo.day, angle: angleInfo.angle, error: e.message });
-    }
-  }
-
-  return json(200, { results, topic });
-};
+  const results = ANGLES.map((angleInfo, i) => {
+    const outco
