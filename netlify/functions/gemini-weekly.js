@@ -54,28 +54,32 @@ Output ONLY the post. No preamble, no quotes. Raw text, ready to publish.`;
 
 async function generatePost(apiKey, topic, category, tone, angleInfo, userName) {
   const prompt = buildPrompt(topic, category, tone, angleInfo, userName);
+  const requestBody = {
+    contents: [{ parts: [{ text: prompt }] }],
+    tools: [{ googleSearch: {} }],
+    generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 4096 },
+  };
+
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 4096 },
-      }),
+      body: JSON.stringify(requestBody),
     }
   );
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Gemini error ${res.status}`);
+    // Return full Gemini error so the UI shows what's actually wrong
+    throw new Error(`Gemini ${res.status}: ${JSON.stringify(err.error || err)}`);
   }
 
   const data = await res.json();
   const parts = data.candidates?.[0]?.content?.parts || [];
   const textPart = parts.find(p => p.text);
   const text = textPart?.text?.trim();
-  if (!text) throw new Error('Empty response from Gemini');
+  if (!text) throw new Error(`Empty response. Finish reason: ${data.candidates?.[0]?.finishReason} | Parts: ${JSON.stringify(parts).slice(0, 200)}`);
   return text;
 }
 
@@ -102,9 +106,4 @@ exports.handler = async (event) => {
     ANGLES.map(angleInfo => generatePost(apiKey, topic, cat, tn, angleInfo, userName))
   );
 
-  const results = ANGLES.map((angleInfo, i) => {
-    const outcome = settled[i];
-    if (outcome.status === 'fulfilled') {
-      return { day: angleInfo.day, angle: angleInfo.angle, post: outcome.value };
-    } else {
-      return { day: angleInfo.day, angle: angleInf
+  const results = ANGLES.map((angleInfo,
