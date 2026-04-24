@@ -43,7 +43,7 @@ exports.handler = async (event) => {
           contents: [{ parts: [{ text: prompt }] }],
           // Google Search grounding — Gemini searches the web before writing.
           // This ensures the post cites real, current stats rather than training-data guesses.
-          tools: [{ google_search: {} }],
+          tools: [{ googleSearch: {} }],
           generationConfig: {
             temperature: 1.0,
             topP: 0.95,
@@ -122,4 +122,4 @@ WHAT TO AVOID:
 
 LENGTH: 950–1,350 characters. Every word must earn its place.
 
-Output ONLY the post. No preamble, no
+Output ONLY the post. No preamble, no 

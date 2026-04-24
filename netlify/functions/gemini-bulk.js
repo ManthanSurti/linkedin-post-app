@@ -65,7 +65,7 @@ async function callGemini(apiKey, topic, category, tone, userName) {
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         // Google Search grounding — ensures stats and examples are real and current.
-        tools: [{ google_search: {} }],
+        tools: [{ googleSearch: {} }],
         generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 4096 },
       }),
     }
@@ -91,4 +91,4 @@ Category: ${category}
 Tone: ${tone}
 
 REQUIREMENTS:
-1. Hoo
+1. Hook

@@ -63,7 +63,7 @@ async function generatePost(apiKey, topic, category, tone, angleInfo, userName) 
         contents: [{ parts: [{ text: prompt }] }],
         // Google Search grounding — Gemini fetches live web results before writing,
         // ensuring stats and trends in the post are current and verifiable.
-        tools: [{ google_search: {} }],
+        tools: [{ googleSearch: {} }],
         generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 4096 },
       }),
     }
@@ -106,4 +106,4 @@ exports.handler = async (event) => {
   );
 
   const results = ANGLES.map((angleInfo, i) => {
-    const outco
+    const outcom

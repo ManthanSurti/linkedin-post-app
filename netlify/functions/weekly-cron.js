@@ -55,7 +55,7 @@ async function generatePost(apiKey, topic, category, tone, angleInfo, userName) 
       body: JSON.stringify({
         contents: [{ parts: [{ text: buildPrompt(topic, category, tone, angleInfo, userName) }] }],
         // Google Search grounding — Gemini fetches live results so stats are current.
-        tools: [{ google_search: {} }],
+        tools: [{ googleSearch: {} }],
         generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 4096 },
       }),
     }
@@ -159,4 +159,4 @@ async function processUser(store, apiKey, userId, now) {
         scheduledDate: scheduledDates[i].toISOString(),
         weeklyAuto: true,
         createdAt: now.toISOString(),
-        updatedAt: now.toISOString
+        updatedAt: now.toISOString(
