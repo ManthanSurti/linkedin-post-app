@@ -1,7 +1,5 @@
 // Runs every Monday at 6 AM UTC.
-// For every user who has weekly auto-post enabled, generates 7 posts and queues them Mon–Sun.
-// Uses Gemini 2.5 Flash + Google Search grounding: fast, accurate, and current.
-// All 7 posts generated in parallel — no sequential delays needed.
+// Generates 7 posts per user in parallel using Gemini 2.5 Flash.
 const { schedule } = require('@netlify/functions');
 const { getStore } = require('@netlify/blobs');
 
@@ -17,37 +15,34 @@ const ANGLES = [
 
 function buildPrompt(topic, category, tone, angleInfo, userName) {
   const author = userName ? userName : 'a sharp professional';
-  return `You are a world-class LinkedIn ghostwriter. You write for ${author} — a credible voice in tech and business. Your posts earn thousands of impressions because they say something real, not something safe.
+  return `You are a world-class LinkedIn ghostwriter. You write for ${author} — a credible voice in tech and business.
 
 TOPIC: "${topic}"
 CATEGORY: ${category}
 TONE: ${tone}
 ANGLE: ${angleInfo.angle}
 ANGLE DIRECTION: ${angleInfo.hint}
-Every part of this post — the hook, body, and CTA — must serve this specific angle. Don't drift from it.
+Every part of this post must serve this specific angle. Don't drift from it.
 
 YOUR MISSION: Write a LinkedIn post that makes professionals stop, read every word, and feel compelled to respond.
 
 STRUCTURAL RULES (non-negotiable):
-→ LINE 1 IS EVERYTHING. Bold claim, striking stat, punchy scenario — create instant tension. No "I", no "We".
-→ Paragraphs: 1–3 lines max. Blank line between every paragraph.
+→ LINE 1 IS EVERYTHING. Bold claim, striking stat, punchy scenario — instant tension. No "I", no "We".
+→ Paragraphs: 1-3 lines max. Blank line between every paragraph.
 → Use → or ✓ for lists. Never dashes or bullet points.
 → Build to an insight the reader didn't see coming.
 → At least one specific, verifiable data point or real-world example.
-→ End with ONE open-ended question that sparks genuine debate — not "What do you think?" or "Agree?".
+→ End with ONE open-ended question that sparks genuine debate.
 → Final line: exactly 5 relevant hashtags.
 
 AVOID: "fast-paced world", "game-changer", "synergy", "excited to share", generic advice, padding.
+LENGTH: 950-1,350 characters. Every word must earn its place.
 
-LENGTH: 950–1,350 characters. Every word must earn its place.
-
-Output ONLY the post. No preamble, no quotes. Raw text, ready to publish.`;
+Output ONLY the post. No preamble. Raw text, ready to publish.`;
 }
 
 async function generatePost(apiKey, topic, category, tone, angleInfo, userName) {
   const res = await fetch(
-    // Flash is sufficient quality for auto-generated posts and ~10x faster than Pro.
-    // Google Search grounding replaces the need for high thinkingBudget to get accurate facts.
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
@@ -77,7 +72,6 @@ const handler = async () => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) { console.log('[weekly-cron] GEMINI_API_KEY not set'); return { statusCode: 200 }; }
 
-  // 1. List all users with weekly settings
   let settingKeys = [];
   try {
     const result = await store.list({ prefix: 'weekly-settings-' });
@@ -93,7 +87,6 @@ const handler = async () => {
   }
 
   const now = new Date();
-
   for (const settingKey of settingKeys) {
     const userId = settingKey.replace('weekly-settings-', '');
     try {
@@ -107,17 +100,14 @@ const handler = async () => {
 };
 
 async function processUser(store, apiKey, userId, now) {
-  // Load weekly settings
   const settings = await store.get(`weekly-settings-${userId}`, { type: 'json' }).catch(() => null);
   if (!settings || !settings.enabled || !settings.topic) {
     console.log(`[weekly-cron] Skipping user ${userId}: disabled or no topic`);
     return;
   }
 
-  // Load app settings (approval required?)
   const appSettings = await store.get(`settings-${userId}`, { type: 'json' }).catch(() => ({ approvalRequired: true }));
 
-  // Build 7 scheduled dates starting from today (Monday)
   const [hh, mm] = (settings.postTime || '10:00').split(':').map(Number);
   const scheduledDates = ANGLES.map((_, i) => {
     const d = new Date(now);
@@ -126,7 +116,6 @@ async function processUser(store, apiKey, userId, now) {
     return d;
   });
 
-  // Load existing posts
   let posts = await store.get(`posts-${userId}`, { type: 'json' }).catch(() => []) || [];
 
   const cat = settings.category || 'General';
@@ -134,8 +123,6 @@ async function processUser(store, apiKey, userId, now) {
   const uName = settings.userName || '';
   const postStatus = (appSettings && appSettings.approvalRequired) ? 'draft' : 'approved';
 
-  // Generate all 7 posts in parallel — Flash is fast enough and 7 simultaneous
-  // requests stays under the 10 RPM free-tier limit.
   console.log(`[weekly-cron] User ${userId}: generating 7 posts in parallel`);
   const settled = await Promise.allSettled(
     ANGLES.map(angleInfo => generatePost(apiKey, settings.topic, cat, tn, angleInfo, uName))
@@ -161,4 +148,16 @@ async function processUser(store, apiKey, userId, now) {
       });
       created++;
     } else {
-      console.error(`[weekly-cron] User ${userId}, ${angleInfo.day} failed:`, outcome
+      console.error(`[weekly-cron] User ${userId}, ${angleInfo.day} failed:`, outcome.reason?.message);
+    }
+  }
+
+  if (created > 0) {
+    await store.setJSON(`posts-${userId}`, posts);
+    settings.lastGeneratedWeek = now.toISOString();
+    await store.setJSON(`weekly-settings-${userId}`, settings);
+    console.log(`[weekly-cron] User ${userId}: queued ${created}/7 posts`);
+  }
+}
+
+module.exports.handler = schedule('0 6 * * 1', handler);
