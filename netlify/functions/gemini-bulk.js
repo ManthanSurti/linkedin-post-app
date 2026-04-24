@@ -64,8 +64,6 @@ async function callGemini(apiKey, topic, category, tone, userName) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        // Google Search grounding — ensures stats and examples are real and current.
-        tools: [{ googleSearch: {} }],
         generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 4096 },
       }),
     }
@@ -91,4 +89,4 @@ Category: ${category}
 Tone: ${tone}
 
 REQUIREMENTS:
-1. Hook
+1. Hook (line 1): Bold contrarian statement, surprising stat, short provocative question, or vivid scenario. Do NOT start with "I" or 

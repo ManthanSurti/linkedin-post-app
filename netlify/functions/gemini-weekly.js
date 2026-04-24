@@ -61,9 +61,6 @@ async function generatePost(apiKey, topic, category, tone, angleInfo, userName) 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        // Google Search grounding — Gemini fetches live web results before writing,
-        // ensuring stats and trends in the post are current and verifiable.
-        tools: [{ googleSearch: {} }],
         generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: 4096 },
       }),
     }
@@ -106,4 +103,8 @@ exports.handler = async (event) => {
   );
 
   const results = ANGLES.map((angleInfo, i) => {
-    const outcom
+    const outcome = settled[i];
+    if (outcome.status === 'fulfilled') {
+      return { day: angleInfo.day, angle: angleInfo.angle, post: outcome.value };
+    } else {
+      return { day: angleInfo.day, angle: angleInf
